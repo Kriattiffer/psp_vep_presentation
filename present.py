@@ -9,7 +9,7 @@ mymon.setSizePix([1920, 1080])
 
 stimrad = 2
 stimcolor = 'red'
-fixation_size = 1
+fix_size = 1
 # base_mseq = [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0] # steady-state
 base_mseq = [0,0,0,0,0,0,1,1,1,1,1,0,1,1,1,1,0,0,1,1,1,0,1,0,1,1,0,0,0,0,1,0,1,1,1,0,0,0,1,1,0,1,1,0,1,0,0,1,0,0,0,1,0,0,1,1,0,0,1,0,1,0,1,0] # cvep
 
@@ -48,8 +48,7 @@ cell4 = visual.Circle(win,
 						)
 
 fixation = visual.ShapeStim(win, 
-						vertices=((0, -1*fixation_size), (0, fixation_size), (0,0), (-1*fixation_size,0), (fixation_size
-							, 0)),
+						vertices=((0, -1*fix_size), (0, fix_size), (0,0), (-1*fix_size,0), (fix_size, 0)),
 						units = 'deg',
 						lineWidth=5,
 						closeShape=False,
