@@ -2,16 +2,16 @@ from psychopy import visual, core, event, monitors
 
 import os, sys, time
 
-mymon = monitors.Monitor('Eizo', distance=50, width = 52.5)
-# mymon = monitors.Monitor('zenbook', distance=50, width = 29.5)
-
+# mymon = monitors.Monitor('Eizo', distance=50, width = 52.5)
+mymon = monitors.Monitor('zenbook', distance=25, width = 29.5)
 mymon.setSizePix([1920, 1080])	
 
 
 stimrad = 2
 stimcolor = 'red'
-base_mseq = [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0] # steady-state
-# base_mseq = [0,0,0,0,0,0,1,1,1,1,1,0,1,1,1,1,0,0,1,1,1,0,1,0,1,1,0,0,0,0,1,0,1,1,1,0,0,0,1,1,0,1,1,0,1,0,0,1,0,0,0,1,0,0,1,1,0,0,1,0,1,0,1,0] # cvep
+fixation_size = 1
+# base_mseq = [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0] # steady-state
+base_mseq = [0,0,0,0,0,0,1,1,1,1,1,0,1,1,1,1,0,0,1,1,1,0,1,0,1,1,0,0,0,0,1,0,1,1,1,0,0,0,1,1,0,1,1,0,1,0,0,1,0,0,0,1,0,0,1,1,0,0,1,0,1,0,1,0] # cvep
 
 win = visual.Window(fullscr = True,
 					rgb = '#868686',
@@ -47,7 +47,15 @@ cell4 = visual.Circle(win,
 						autoDraw=True
 						)
 
-fixation = visual.GratingStim(win, size=10, units = 'pix', pos=[0,0], autoDraw=True)
+fixation = visual.ShapeStim(win, 
+						vertices=((0, -1*fixation_size), (0, fixation_size), (0,0), (-1*fixation_size,0), (fixation_size
+							, 0)),
+						units = 'deg',
+						lineWidth=5,
+						closeShape=False,
+						lineColor='white',
+						autoDraw=True
+					)
 
 cell1.pos = [0, 12]
 cell2.pos = [12, 0]
