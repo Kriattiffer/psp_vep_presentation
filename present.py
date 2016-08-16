@@ -12,12 +12,13 @@ stimcolor = 'red'
 fix_size = 1
 # base_mseq = [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0] # steady-state
 base_mseq = [0,0,0,0,0,0,1,1,1,1,1,0,1,1,1,1,0,0,1,1,1,0,1,0,1,1,0,0,0,0,1,0,1,1,1,0,0,0,1,1,0,1,1,0,1,0,0,1,0,0,0,1,0,0,1,1,0,0,1,0,1,0,1,0] # cvep
+base_mseq = [a for a in base_mseq for b in [0,0]]
 
 win = visual.Window(fullscr = True,
 					rgb = '#868686',
 					size=(1920, 1080),
-					monitor = mymon)
-
+					monitor = mymon
+					)
 cell1 = visual.Circle(win,
 						radius=stimrad,
 						lineColor = None, 
@@ -46,7 +47,6 @@ cell4 = visual.Circle(win,
 						units = 'deg',
 						autoDraw=True
 						)
-
 fixation = visual.ShapeStim(win, 
 						vertices=((0, -1*fix_size), (0, fix_size), (0,0), (-1*fix_size,0), (fix_size, 0)),
 						units = 'deg',
@@ -54,7 +54,7 @@ fixation = visual.ShapeStim(win,
 						closeShape=False,
 						lineColor='white',
 						autoDraw=True
-					)
+						)
 
 cell1.pos = [0, 12]
 cell2.pos = [12, 0]
@@ -63,17 +63,15 @@ cell4.pos = [-12, 0]
 
 
 
-def flipper(n, frame):
-	# if 27<=n<=30:
-	# 	cell.fillColor = 'red'
-	# 	win.flip()
+def flipper(n, frame, CELL):
+	if 27<=n<=30:
+		CELL.fillColor = 'red'
+		return
 	if frame ==1:
-		cell1.fillColor = 'white'
-		win.flip()
+		CELL.fillColor = 'white'
 		return
 	elif frame == 0:
-		cell1.fillColor = 'black'
-		win.flip()
+		CELL.fillColor = 'black'
 		return
 
 while  1:
@@ -81,4 +79,9 @@ while  1:
 	if 'escape' in event.getKeys():
 		sys.exit()
 	for n, frame in enumerate(base_mseq):
-		flipper(n, frame)	
+		flipper(n, frame, cell1)
+		flipper(n, frame, cell2)
+		flipper(n, frame, cell3)
+		flipper(n, frame, cell4)
+		
+		win.flip()
