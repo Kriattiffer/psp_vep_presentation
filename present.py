@@ -10,9 +10,10 @@ mymon.setSizePix([1920, 1080])
 stimrad = 2
 stimcolor = 'red'
 fix_size = 1
+base_mseq = [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0] # steady-state 60 fps
 # base_mseq = [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0] # steady-state
-base_mseq = [0,0,0,0,0,0,1,1,1,1,1,0,1,1,1,1,0,0,1,1,1,0,1,0,1,1,0,0,0,0,1,0,1,1,1,0,0,0,1,1,0,1,1,0,1,0,0,1,0,0,0,1,0,0,1,1,0,0,1,0,1,0,1,0] # cvep
-base_mseq = [a for a in base_mseq for b in [0,0]]
+# base_mseq = [0,0,0,0,0,0,1,1,1,1,1,0,1,1,1,1,0,0,1,1,1,0,1,0,1,1,0,0,0,0,1,0,1,1,1,0,0,0,1,1,0,1,1,0,1,0,0,1,0,0,0,1,0,0,1,1,0,0,1,0,1,0,1,0] # cvep
+# base_mseq = [a for a in base_mseq for b in [0,0,0,0]]
 
 win = visual.Window(fullscr = True,
 					rgb = '#868686',
@@ -56,15 +57,15 @@ fixation = visual.ShapeStim(win,
 						autoDraw=True
 						)
 
-cell1.pos = [0, 12]
-cell2.pos = [12, 0]
-cell3.pos = [0, -12]
-cell4.pos = [-12, 0]
+cell1.pos = [0, 15]
+cell2.pos = [15, 0]
+cell3.pos = [0, -15]
+cell4.pos = [-15, 0]
 
 
 
 def flipper(n, frame, CELL):
-	if 27<=n<=30:
+	if n == 27 or n == 28:
 		CELL.fillColor = 'red'
 		return
 	if frame ==1:
@@ -74,6 +75,7 @@ def flipper(n, frame, CELL):
 		CELL.fillColor = 'black'
 		return
 
+tt = time.time()
 while  1:
 
 	if 'escape' in event.getKeys():
@@ -85,3 +87,5 @@ while  1:
 		flipper(n, frame, cell4)
 		
 		win.flip()
+	print (tt - time.time())
+	tt = time.time()
