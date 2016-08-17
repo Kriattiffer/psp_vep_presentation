@@ -1,5 +1,5 @@
 from psychopy import visual, core, event, monitors
-import os, sys, time
+import os, sys, time, socket
 import numpy
 
 # mymon = monitors.Monitor('Eizo', distance=50, width = 52.5)
@@ -67,6 +67,9 @@ class ENVIRONMENT():
 	def flipper(self, CELL, bit, n):
 		'''function gets circe object, bit of the stimuli sequence, 
 		and number of this bit, and decides what to do with circle on the next step'''
+		# if n == 2:
+		# 	CELL.fillColor = 'red'
+		# 	return
 		if bit == 2:
 			CELL.fillColor = 'red'
 			return
@@ -77,22 +80,39 @@ class ENVIRONMENT():
 			CELL.fillColor = 'black'
 			return
 
+	def create_steady_state_sequences(self, freqs, refresh_rate = 120, limit_pulse_width = None, phase_rotate = None):
+		'''Function receives list of frequencies and screen refresh_rate, returns list of sequences, corresponding to this frequencies. 
+		   Frequences should be disisors of refresh_rate/2
+		   TODO:
+		   If limit_pulse_width (int) is specified, number of consequitive 'ones' is limited by this number 
+		   If duty_cycles (list) is specified, sequences will have corresponding duty cycles
+ 		   If phase_rotate (list) is specified, sequences will be shifted by corresponding fraction of its period  '''
+		ss_seqs = []
+		for freq in freqs:
+			ss_seq = [a  for a in [1,0]*freq for b in range(refresh_rate/2/freq)]
+			ss_seqs.append(ss_seq)
+		return ss_seqs
+
 	def run_exp(self, base_mseq):
 		tt = time.time()
 
-		seq1, seq2, seq3, seq4 = base_mseq, numpy.roll(base_mseq, 8), numpy.roll(base_mseq, 16), numpy.roll(base_mseq, 24) # create sequences for every cell; should be identical size!
+
+		# create sequences for every cell; should be the same length!
+		# seq1, seq2, seq3, seq4 = base_mseq, numpy.roll(base_mseq, 8), numpy.roll(base_mseq, 16), numpy.roll(base_mseq, 24) # CVEP
+		steady_state_seqs = self.create_steady_state_sequences([6, 10, 12, 15])
+		seq1, seq2, seq3, seq4 = steady_state_seqs[0], steady_state_seqs[1], steady_state_seqs[2], steady_state_seqs[3]
 		pattern = [(self.cell1, seq1), (self.cell2, seq2), (self.cell3, seq3), (self.cell4, seq4)]
 		while  1:
 			if 'escape' in event.getKeys():
 				sys.exit()
-				
+
 			for bit_number in range(len(seq4)): # cycle through sequences 
 				for pair in pattern: # decide what to do with every circle at the next refresh
 					self.flipper(pair[0], pair[1][bit_number], bit_number)
 				
 				self.win.flip() # refresh screen
 			
-			print (tt - time.time())
+			print (1 + (tt - time.time()))*1000
 			tt = time.time()
 
 
