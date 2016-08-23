@@ -6,6 +6,7 @@ import numpy
 # mymon = monitors.Monitor('Eizo', distance=50, width = 52.5)
 mymon = monitors.Monitor('zenbook', distance=25, width = 29.5)
 mymon.setSizePix([1920, 1080])	
+Fullscreen = False
 
 # base_mseq = [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0] # steady-state 60 fps
 # base_mseq = [0,0,0,0,0,0,1,1,1,1,1,0,1,1,1,1,0,0,1,1,1,0,1,0,1,1,0,0,0,0,1,0,1,1,1,0,0,0,1,1,0,1,1,0,1,0,0,1,0,0,0,1,0,0,1,1,0,0,1,0] # cvep 60 fps
@@ -20,7 +21,6 @@ base_mseq = numpy.array(base_mseq, dtype = int)
 class ENVIRONMENT():
 	""" class for visual stimulation during the experiment """
 	
-	def build_gui(self, monitor = mymon, size=(1920, 1080),
 	 			  rgb = '#868686', stimrad = 2, stimcolor = 'red', fix_size = 1):
 		''' function for creating visual enviroment. Input: various parameters of stimuli, all optional'''
 		
@@ -36,7 +36,7 @@ class ENVIRONMENT():
 			return circ
 
 		# Create window
-		self.win = visual.Window(fullscr = True, 
+		self.win = visual.Window(fullscr = Fullscreen, 
 							rgb = rgb,
 							size = size,
 							monitor = monitor
@@ -107,7 +107,7 @@ class ENVIRONMENT():
 				
 				self.win.flip() # refresh screen
 			
-			print (1 + (tt - time.time()))*1000 # difference between desired and real time
+			print (2 + (tt - time.time()))*1000 # difference between desired and real time
 			tt = time.time()
 
 
