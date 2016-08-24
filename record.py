@@ -34,9 +34,10 @@ class FFT_PLOT():
 		self.fig.canvas.start_event_loop(0.001) #0.1 ms seems enough
 
 class EEG_STREAM(object):
-	"""docstring for EEG_STREAM"""
+	""" class for EEG\markers streaming, plotting and recording. """
 	def __init__(self):
-		self.stop = False
+		''' create objects for later use'''
+		self.stop = False 
 		self.ie, self.im =  self.create_streams(StreamMarkers = True)
 		self.EEG_ARRAY = self.create_array()
 		self.MARKER_ARRAY = self.create_array(top_exp_length = 1, number_of_channels = 2)
@@ -70,7 +71,7 @@ class EEG_STREAM(object):
 		return inlet_eeg, inlet_markers
 	
 	def create_array(self, top_exp_length = 60, number_of_channels  = 9):
-		"Creates very long array of Nans, which will be filled by EEG. length is determined by maximum length of the experiment in minutes"
+		'''Creates very long array of Nans, which will be filled by EEG. length is determined by maximum length of the experiment in minutes'''
 		record_length = 500*60*top_exp_length*1.2
 		array_shape = (record_length, number_of_channels)
 		print 'Creating array with dimensions %s...' %str(array_shape) 
@@ -80,12 +81,15 @@ class EEG_STREAM(object):
 		return a
 
 	def fill_array(self, eeg_array, line_counter, data_chunk, timestamp_chunk, datatype = 'EEG'):
+		'''Recieves preallocated array of NaNs, piece of data, piece of offsets and number of line, inserts everything into array. Works both with EEG and with markers '''
 		length = len(timestamp_chunk)
 		eeg_array[line_counter:line_counter+length, 0] = timestamp_chunk
 		eeg_array[line_counter:line_counter+length,1:] = data_chunk
 	
 	def plot_and_record(self):
-		while self.stop != True:
+		''' Main cycle for recording and plotting. Pulls markers and eeg from lsl inlets, 
+		fills preallocated arrays with data. After certain offset calculates FFT and updates plots. Records data on exit.'''
+		while self.stop != True:	# set EEG_STREAM.stop to False to stop sutpid games and flush arrays to disc.
 			marker, timestamp_mark = self.im.pull_chunk()
 			EEG, timestamp_eeg = self.ie.pull_chunk()
 			if timestamp_eeg:
@@ -98,9 +102,11 @@ class EEG_STREAM(object):
 				self.line_counter_mark += len(timestamp_mark)
 				self.fill_array(self.MARKER_ARRAY, self.line_counter_mark, marker[0], timestamp_mark, datatype = 'MARKER')
 
+		print 'saving experiment data...'
 		np.savetxt('data.txt', self.EEG_ARRAY, fmt= '%.4f')
 		np.savetxt('markers.txt', self.MARKER_ARRAY, fmt= '%.4f')
-		print 'data saved'
+		print '...data saved.'
+		# sys.exit()
 
 
 def compute_fft(EEG_ARRAY,offset, sample_length = 1000):

@@ -1,4 +1,6 @@
+print 'importing psychopy...'
 from psychopy import visual, core, event, monitors
+print '...done!'
 from pylsl import StreamInfo, StreamOutlet
 import os, sys, time, socket
 import numpy
@@ -132,6 +134,11 @@ def create_lsl_outlet(name = 'CycleStart', DeviceMac = '00:07:80:64:EB:46'):
 	outlet =StreamOutlet(info)
 	return outlet
 
+
+def view():
+	ENV = ENVIRONMENT()
+	ENV.build_gui(monitor = mymon)
+	ENV.run_exp(base_mseq)
 if __name__ == '__main__':
 	
 	ENV = ENVIRONMENT()

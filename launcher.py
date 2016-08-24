@@ -4,12 +4,14 @@ import record
 
 
 def view():
+	'''create stimulation window'''
 	ENV = present.ENVIRONMENT()
 	ENV.build_gui(monitor = present.mymon)
 	ENV.run_exp(present.base_mseq)
 	sys.stdout = open(str(os.getpid()) + ".out", "w")
 
 def rec():
+	''' create stream class and start recording and plotting'''
 	Stream = record.EEG_STREAM()
 	Stream.plot_and_record()
 	sys.stdout = open(str(os.getpid()) + ".out", "w")
