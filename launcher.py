@@ -17,7 +17,9 @@ def rec():
 	sys.stdout = open(str(os.getpid()) + ".out", "w")
 
 if __name__ == '__main__':
+	print 'startig GUI...'
 	p1 = multiprocessing.Process(target=view)
-	p1.start()
+	print 'startig backend...'
 	p2 = multiprocessing.Process(target=rec)
 	p2.start()
+	p1.start()

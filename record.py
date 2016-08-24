@@ -2,7 +2,8 @@ from pylsl import StreamInlet, resolve_stream
 from matplotlib import pyplot as plt
 from scipy import signal
 import numpy as np
-import socket
+import sys, os
+
 
 class FFT_PLOT():
 	"""class for real-time plotting of FFT fot every channel"""
@@ -45,29 +46,48 @@ class EEG_STREAM(object):
 		self.line_counter = 0
 		self.line_counter_mark = 0
 	
-	def create_streams(self, stream_name_eeg = 'NIC', stream_name_markers = 'CycleStart', StreamEeg = True, StreamMarkers = True):
-		''' Opens two LSL streams: one for EEG, another for markers'''
+	def create_streams(self, stream_type_eeg = 'EEG', stream_name_markers = 'CycleStart', StreamEeg = True, StreamMarkers = True, recursion_meter = 0, max_recursion_depth = 4):
+		''' Opens two LSL streams: one for EEG, another for markers, If error, tries to reconnect several times'''
+		if recursion_meter == 0:
+			recursion_meter +=1
+		elif 0<recursion_meter <max_recursion_depth:
+			print 'Trying to reconnect for the %i time \n' % (recursion_meter+1)
+			recursion_meter +=1
+		else:
+			print 'exiting'
+			sys.exit()
 		inlet_eeg = []; inlet_markers = []
 		
 		if StreamEeg == True:
 			print ("Connecting to NIC stream...")
-			streams_eeg = resolve_stream('type', 'EEG')
-			inlet_eeg = StreamInlet(streams_eeg[0])   
-			try:
-				inlet_eeg
-				print '...done \n'
-			except NameError:
-				print ("Error: NIC stream not available\n")
+			if stream_type_eeg in [stream.type() for stream in resolve_stream()]:
+				streams_eeg = resolve_stream('type', 'EEG')
+				inlet_eeg = StreamInlet(streams_eeg[0])   
+				try:
+					inlet_eeg
+					print '...done \n'
+				except NameError:
+					print ("Error: Cannot conect to NIC stream\n")
+					sys.exit()
+			else:
+				print 'Error: NIC stream is not available\n'
+				sys.exit()
+
 		if StreamMarkers == True:
 			print ("Connecting to Psychopy stream...")
-			sterams_markers = resolve_stream('name', stream_name_markers)	
-			inlet_markers = StreamInlet(sterams_markers[0])   
-			try:
-				inlet_markers
-				print '...done \n'
-			except NameError:
-				print ("Error: Psychopy stream not available\n")
-
+			if stream_name_markers in [stream.name() for stream in resolve_stream()]:
+				sterams_markers = resolve_stream('name', stream_name_markers)
+				inlet_markers = StreamInlet(sterams_markers[0])   
+				try:
+					inlet_markers
+					print '...done \n'
+				except NameError:
+					print ("Error: Cannot conect to Psychopy stream\n")
+					sys.exit()
+			else:
+				print 'Error: Psychopy stream is not available\n'
+				return self.create_streams(stream_type_eeg, stream_name_markers, StreamEeg, StreamMarkers, recursion_meter)
+		
 		return inlet_eeg, inlet_markers
 	
 	def create_array(self, top_exp_length = 60, number_of_channels  = 9):
@@ -89,6 +109,7 @@ class EEG_STREAM(object):
 	def plot_and_record(self):
 		''' Main cycle for recording and plotting. Pulls markers and eeg from lsl inlets, 
 		fills preallocated arrays with data. After certain offset calculates FFT and updates plots. Records data on exit.'''
+	
 		while self.stop != True:	# set EEG_STREAM.stop to False to stop sutpid games and flush arrays to disc.
 			marker, timestamp_mark = self.im.pull_chunk()
 			EEG, timestamp_eeg = self.ie.pull_chunk()
@@ -99,14 +120,16 @@ class EEG_STREAM(object):
 					FFT = compute_fft(self.EEG_ARRAY, self.line_counter, sample_length = 1000)
 					self.plot.update_fft(FFT)
 			if timestamp_mark:
+				print marker
 				self.line_counter_mark += len(timestamp_mark)
-				self.fill_array(self.MARKER_ARRAY, self.line_counter_mark, marker[0], timestamp_mark, datatype = 'MARKER')
-
-		print 'saving experiment data...'
-		np.savetxt('data.txt', self.EEG_ARRAY, fmt= '%.4f')
-		np.savetxt('markers.txt', self.MARKER_ARRAY, fmt= '%.4f')
-		print '...data saved.'
-		# sys.exit()
+				self.fill_array(self.MARKER_ARRAY, self.line_counter_mark, marker[0], timestamp_mark, datatype = 'MARKER')				
+				if marker == [[666]]:
+					self.stop = True
+					print 'saving experiment data...'
+					np.savetxt('data.txt', self.EEG_ARRAY, fmt= '%.4f')
+					np.savetxt('markers.txt', self.MARKER_ARRAY, fmt= '%.4f')
+					print '...data saved.\nGoodbye.'
+		sys.exit()
 
 
 def compute_fft(EEG_ARRAY,offset, sample_length = 1000):
@@ -119,6 +142,9 @@ def compute_fft(EEG_ARRAY,offset, sample_length = 1000):
 	# fft = fft/np.max(fft)
 	fft = fft/100000
 	return fft
+
+
+os.chdir(os.path.dirname(__file__)) 	# VLC PATH BUG ==> submit?
 
 if __name__ == '__main__':
 	Stream = EEG_STREAM()

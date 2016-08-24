@@ -1,9 +1,8 @@
-print 'importing psychopy...'
 from psychopy import visual, core, event, monitors
-print '...done!'
 from pylsl import StreamInfo, StreamOutlet
 import os, sys, time, socket
 import numpy
+
 
 # mymon = monitors.Monitor('Eizo', distance=50, width = 52.5)
 mymon = monitors.Monitor('zenbook', distance=25, width = 29.5)
@@ -99,19 +98,26 @@ class ENVIRONMENT():
 		LSL.push_sample([11]) # indicate the begining of trial
 
 		tt = time.time()
+		deltalist = ['','','','','','','','','','']
 		while  1:
 			if 'escape' in event.getKeys():
+				LSL.push_sample([666])
+				time.sleep(0.3)
 				sys.exit()
 			# print time.time()
 			LSL.push_sample([111])  # sync with EEG
 
 			for bit_number in range(len(seq4)): # cycle through sequences 
 				for pair in pattern: # decide what to do with every circle at the next refresh
-					self.flipper(pair[0], pair[1][bit_number], bit_number)
-				
+					self.flipper(pair[0], pair[1][bit_number], bit_number)	
 				self.win.flip() # refresh screen
-			
-			print 'delta T:	%i ms\n' % ((2 + (tt - time.time()))*1000) # difference between desired and real time
+
+			# difference between desired and real time
+			deltaT = int((2 + (tt - time.time()))*1000)
+			# deltaT = "{0:.1f}".format(round(deltaT,2))
+			deltalist[1:] = deltalist[0:-1]
+			deltalist[0] = deltaT
+			print 'delta T:	%s ms \r' % str(deltalist),
 			tt = time.time()
 
 
@@ -136,9 +142,11 @@ def create_lsl_outlet(name = 'CycleStart', DeviceMac = '00:07:80:64:EB:46'):
 
 
 def view():
+	'''function for multiprocessing'''
 	ENV = ENVIRONMENT()
 	ENV.build_gui(monitor = mymon)
 	ENV.run_exp(base_mseq)
+
 if __name__ == '__main__':
 	
 	ENV = ENVIRONMENT()
