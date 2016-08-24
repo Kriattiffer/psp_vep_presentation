@@ -6,6 +6,7 @@ import numpy
 # mymon = monitors.Monitor('Eizo', distance=50, width = 52.5)
 mymon = monitors.Monitor('zenbook', distance=25, width = 29.5)
 mymon.setSizePix([1920, 1080])	
+window_size = (1000, 400)
 Fullscreen = False
 
 # base_mseq = [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0] # steady-state 60 fps
@@ -21,6 +22,7 @@ base_mseq = numpy.array(base_mseq, dtype = int)
 class ENVIRONMENT():
 	""" class for visual stimulation during the experiment """
 	
+	def build_gui(self, monitor = mymon, size=window_size,
 	 			  rgb = '#868686', stimrad = 2, stimcolor = 'red', fix_size = 1):
 		''' function for creating visual enviroment. Input: various parameters of stimuli, all optional'''
 		
@@ -98,7 +100,7 @@ class ENVIRONMENT():
 		while  1:
 			if 'escape' in event.getKeys():
 				sys.exit()
-			
+			# print time.time()
 			LSL.push_sample([111])  # sync with EEG
 
 			for bit_number in range(len(seq4)): # cycle through sequences 
@@ -107,7 +109,7 @@ class ENVIRONMENT():
 				
 				self.win.flip() # refresh screen
 			
-			print (2 + (tt - time.time()))*1000 # difference between desired and real time
+			print 'delta T:	%i ms\n' % ((2 + (tt - time.time()))*1000) # difference between desired and real time
 			tt = time.time()
 
 
