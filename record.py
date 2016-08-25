@@ -17,15 +17,17 @@ class FFT_PLOT():
 		self.xf = np.linspace(0.0, 1.0/(2.0*T), self.sample_length/2)
 		self.fig,self.axes = plt.subplots(nrows =3, ncols = 3, figsize = (15,10))
 		self.axes = self.axes.flatten()[:-1]
+		# plt.get_current_fig_manager().window.wm_geometry("-1920+0") # move FFT window tio second screen. Frame redraw in pesent.py starts to suck ==> possible problem with video card
 		self.fig.show()
 		self.backgrounds = [self.fig.canvas.copy_from_bbox(ax.bbox) for ax in self.axes]
 		self.lines = [ax.plot(np.arange(119), np.arange(0,1,1/119.0))[0] for ax in self.axes] #np.arange(0,1,1/119.0)
 		[self.axes[i].set_title(channels[i], fontweight= 'bold',) for i in range(len(self.axes))]
 		self.fig.canvas.draw()
-		# return self.fig, lines, self.axes, backgrounds
 
 	def update_fft(self, FFT):
 		''' receives FFT vector, trimmes it to 119 points (whth 500 hz refresh rate it is 60 hz maximum), redraws plot.'''
+		if not plt.fignum_exists(1): # dosent't try to update closed figure # careful with additional figures!
+			return
 		FFT = np.abs(FFT[0:119,:])
 		for line, ax, background, channel  in zip(self.lines, self.axes, self.backgrounds, range(len(self.axes))):
 			self.fig.canvas.restore_region(background)			
@@ -36,17 +38,21 @@ class FFT_PLOT():
 
 class EEG_STREAM(object):
 	""" class for EEG\markers streaming, plotting and recording. """
-	def __init__(self):
+	def __init__(self, plot_fft = True):
 		''' create objects for later use'''
+		self.plot_fft = plot_fft
+		
 		self.stop = False 
 		self.ie, self.im =  self.create_streams(StreamMarkers = True)
 		self.EEG_ARRAY = self.create_array()
 		self.MARKER_ARRAY = self.create_array(top_exp_length = 1, number_of_channels = 2)
-		self.plot = FFT_PLOT()
 		self.line_counter = 0
 		self.line_counter_mark = 0
+		if self.plot_fft == True:
+			self.plot = FFT_PLOT()
+
 	
-	def create_streams(self, stream_type_eeg = 'EEG', stream_name_markers = 'CycleStart', StreamEeg = True, StreamMarkers = True, recursion_meter = 0, max_recursion_depth = 4):
+	def create_streams(self, stream_type_eeg = 'EEG', stream_name_markers = 'CycleStart', StreamEeg = True, StreamMarkers = True, recursion_meter = 0, max_recursion_depth = 3):
 		''' Opens two LSL streams: one for EEG, another for markers, If error, tries to reconnect several times'''
 		if recursion_meter == 0:
 			recursion_meter +=1
@@ -55,6 +61,7 @@ class EEG_STREAM(object):
 			recursion_meter +=1
 		else:
 			print 'exiting'
+			plt.close()
 			sys.exit()
 		inlet_eeg = []; inlet_markers = []
 		
@@ -68,9 +75,11 @@ class EEG_STREAM(object):
 					print '...done \n'
 				except NameError:
 					print ("Error: Cannot conect to NIC stream\n")
+					plt.close()
 					sys.exit()
 			else:
 				print 'Error: NIC stream is not available\n'
+				plt.close()
 				sys.exit()
 
 		if StreamMarkers == True:
@@ -83,6 +92,7 @@ class EEG_STREAM(object):
 					print '...done \n'
 				except NameError:
 					print ("Error: Cannot conect to Psychopy stream\n")
+					plt.close()
 					sys.exit()
 			else:
 				print 'Error: Psychopy stream is not available\n'
@@ -116,19 +126,21 @@ class EEG_STREAM(object):
 			if timestamp_eeg:
 				self.fill_array(self.EEG_ARRAY, self.line_counter, EEG, timestamp_eeg, datatype = 'EEG')
 				self.line_counter += len(timestamp_eeg)
-				if self.line_counter>1000 and self.line_counter % 20 == 0:
+				if self.line_counter>1000 and self.line_counter % 20 == 0 and self.plot_fft == True:
 					FFT = compute_fft(self.EEG_ARRAY, self.line_counter, sample_length = 1000)
 					self.plot.update_fft(FFT)
 			if timestamp_mark:
-				print marker
 				self.line_counter_mark += len(timestamp_mark)
 				self.fill_array(self.MARKER_ARRAY, self.line_counter_mark, marker[0], timestamp_mark, datatype = 'MARKER')				
 				if marker == [[666]]:
 					self.stop = True
-					print 'saving experiment data...'
-					np.savetxt('data.txt', self.EEG_ARRAY, fmt= '%.4f')
-					np.savetxt('markers.txt', self.MARKER_ARRAY, fmt= '%.4f')
-					print '...data saved.\nGoodbye.'
+					plt.close() # oherwise get Fatal Python error: PyEval_RestoreThread: NULL tstate
+					print '\nsaving experiment data...\n'
+					eegdata = self.EEG_ARRAY[np.isnan(self.EEG_ARRAY[:,1]) != True,:]  # delete all unused lines from data matrix
+					markerdata = self.MARKER_ARRAY[np.isnan(self.MARKER_ARRAY[:,1]) != True,:]
+					np.savetxt('data.txt', eegdata, fmt= '%.4f')
+					np.savetxt('markers.txt', markerdata, fmt= '%.4f')
+					print '\n...data saved.\n Goodbye.\n'
 		sys.exit()
 
 
