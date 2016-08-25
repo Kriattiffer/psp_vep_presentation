@@ -138,8 +138,8 @@ class EEG_STREAM(object):
 					print '\nsaving experiment data...\n'
 					eegdata = self.EEG_ARRAY[np.isnan(self.EEG_ARRAY[:,1]) != True,:]  # delete all unused lines from data matrix
 					markerdata = self.MARKER_ARRAY[np.isnan(self.MARKER_ARRAY[:,1]) != True,:]
-					np.savetxt('data.txt', eegdata, fmt= '%.4f')
-					np.savetxt('markers.txt', markerdata, fmt= '%.4f')
+					np.savetxt('_data.txt', eegdata, fmt= '%.4f')
+					np.savetxt('_markers.txt', markerdata, fmt= '%.4f')
 					print '\n...data saved.\n Goodbye.\n'
 		sys.exit()
 
@@ -156,8 +156,8 @@ def compute_fft(EEG_ARRAY,offset, sample_length = 1000):
 	return fft
 
 
-os.chdir(os.path.dirname(__file__)) 	# VLC PATH BUG ==> submit?
+# os.chdir(os.path.dirname(__file__)) 	# VLC PATH BUG ==> submit?
 
 if __name__ == '__main__':
-	Stream = EEG_STREAM()
+	Stream = EEG_STREAM(plot_fft = False)
 	Stream.plot_and_record()

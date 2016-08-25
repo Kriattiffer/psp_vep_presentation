@@ -22,19 +22,29 @@ base_mseq = numpy.array(base_mseq, dtype = int)
 
 class ENVIRONMENT():
 	""" class for visual stimulation during the experiment """
-	
+	def __init__(self):
+		# self.stimcolor = ['red', 'green', 'blue', 'pink']
+		self.stimcolor = ['white', 'white', 'white', 'white']
+
+		self. time_4_one_letter = 6
+		self.number_of_inputs = 12
+		self.LSL = create_lsl_outlet() # create outlet for sync with NIC
+		core.wait(1)
+		self.LSL.push_sample([11]) # indicate the begining of trial
+
 	def build_gui(self, monitor = mymon, size=window_size,
-	 			  rgb = '#868686', stimrad = 2, stimcolor = 'red', fix_size = 1):
+	 			  rgb = '#868686', stimrad = 2, fix_size = 1):
 		''' function for creating visual enviroment. Input: various parameters of stimuli, all optional'''
 		
-		def create_circle():
+		def create_circle(i):
 			''' Call this to create identical circles, posing as stimulis'''
 			circ = visual.Circle(self.win,
 								radius=stimrad,
 								lineColor = None, 
-								fillColor = stimcolor,
+								fillColor = self.stimcolor[i],
 								units = 'deg',
-								autoDraw=True
+								autoDraw=True,
+								name=i
 								)
 			return circ
 
@@ -46,10 +56,10 @@ class ENVIRONMENT():
 							)
 
 		# Crete stimuli
-		self.cell1 = create_circle() 
-		self.cell2 = create_circle()
-		self.cell3 = create_circle()
-		self.cell4 = create_circle()
+		self.cell1 = create_circle(0) 
+		self.cell2 = create_circle(1)
+		self.cell3 = create_circle(2)
+		self.cell4 = create_circle(3)
 
 		# Create fixation cross
 		self.fixation = visual.ShapeStim(self.win,  							
@@ -75,15 +85,21 @@ class ENVIRONMENT():
 		# if n == 2:
 		# 	CELL.fillColor = 'red'
 		# 	return
-		if bit == 2:
+		if n == 3:
 			CELL.fillColor = 'red'
 			return
 		if bit ==1:
-			CELL.fillColor = 'white'
+			CELL.fillColor = self.stimcolor[CELL.name]
 			return
 		elif bit == 0:
 			CELL.fillColor = 'black'
 			return
+	
+	def exit_(self):
+		''' exit and kill dependent processes'''
+		self.LSL.push_sample([666])
+		core.wait(0.3)
+		sys.exit()
 
 	def run_exp(self, base_mseq):
 		'''Core function of the experiment. Defines GUI behavior and marker sending'''
@@ -92,33 +108,36 @@ class ENVIRONMENT():
 		steady_state_seqs = create_steady_state_sequences([6, 10, 12, 15])
 		seq1, seq2, seq3, seq4 = steady_state_seqs[0], steady_state_seqs[1], steady_state_seqs[2], steady_state_seqs[3]
 		pattern = [(self.cell1, seq1), (self.cell2, seq2), (self.cell3, seq3), (self.cell4, seq4)]
-		
-		LSL = create_lsl_outlet() # create outlet for sync with NIC
-		core.wait(1)
-		LSL.push_sample([11]) # indicate the begining of trial
 
 		tt = time.time()
 		deltalist = ['','','','','','','','','','']
-		while  1:
-			if 'escape' in event.getKeys():
-				LSL.push_sample([666])
-				time.sleep(0.3)
-				sys.exit()
-			# print time.time()
-			LSL.push_sample([111])  # sync with EEG
+		
+		while 's' not in event.getKeys():
+			pass
+		for a in range(self.number_of_inputs):
+			timer = core.Clock()
+			while timer.getTime() < self.time_4_one_letter: 
+				if 'escape' in event.getKeys():
+					self.exit_()
+				# print time.time()
+				self.LSL.push_sample([111])  # sync with EEG
 
-			for bit_number in range(len(seq4)): # cycle through sequences 
-				for pair in pattern: # decide what to do with every circle at the next refresh
-					self.flipper(pair[0], pair[1][bit_number], bit_number)	
-				self.win.flip() # refresh screen
+				for bit_number in range(len(seq4)): # cycle through sequences 
+					for pair in pattern: # decide what to do with every circle at the next refresh
+						self.flipper(pair[0], pair[1][bit_number], bit_number)	
+					self.win.flip() # refresh screen
 
-			# difference between desired and real time
-			deltaT = int((1 + (tt - time.time()))*1000)
-			# deltaT = "{0:.1f}".format(round(deltaT,2))
-			deltalist[1:] = deltalist[0:-1]
-			deltalist[0] = deltaT
-			print 'delta T:	%s ms \r' % str(deltalist),
-			tt = time.time()
+				# difference between desired and real time
+				deltaT = int((1 + (tt - time.time()))*1000)
+				# deltaT = "{0:.1f}".format(round(deltaT,2))
+				deltalist[1:] = deltalist[0:-1]
+				deltalist[0] = deltaT
+				print 'delta T:	%s ms \r' % str(deltalist),
+				tt = time.time()
+			print 'next letter\n'
+			core.wait(2)
+		self.exit_()
+
 
 
 def create_steady_state_sequences(freqs, refresh_rate = 120, limit_pulse_width = None, phase_rotate = None):

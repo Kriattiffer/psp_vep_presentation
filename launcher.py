@@ -1,6 +1,6 @@
 import multiprocessing, sys
 import present
-import record1
+import record
 
 
 def view():
@@ -12,7 +12,7 @@ def view():
 
 def rec():
 	''' create stream class and start recording and plotting'''
-	Stream = record1.EEG_STREAM()
+	Stream = record.EEG_STREAM(plot_fft = False)
 	Stream.plot_and_record()
 	sys.stdout = open(str(os.getpid()) + ".out", "w")
 
