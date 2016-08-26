@@ -10,10 +10,12 @@ class FFT_PLOT():
 	def __init__(self):
 		''' here we createth plot object, to update it in loop. for performance we useth here powerful magic called 'blitting',  
 		that helpeth us to redraw only data, while keenping backround and axes intact. How it worketh remains unknown >>> look into it later!'''
-		
+
 		channels = ['1','2','3','4','5','6','7','8'] # need to set from config file		
 		self.sample_length = 1000 # number of samples to analyze
 		T = 1/500.0				#sampling rate
+
+
 		self.xf = np.linspace(0.0, 1.0/(2.0*T), self.sample_length/2)
 		self.fig,self.axes = plt.subplots(nrows =3, ncols = 3, figsize = (15,10))
 		self.axes = self.axes.flatten()[:-1]
@@ -38,12 +40,15 @@ class FFT_PLOT():
 
 class EEG_STREAM(object):
 	""" class for EEG\markers streaming, plotting and recording. """
-	def __init__(self, plot_fft = True):
+	def __init__(self,  StreamEeg = True, StreamMarkers = True, plot_fft = True):
 		''' create objects for later use'''
+		self.StreamEeg, self.StreamMarkers = StreamEeg, StreamMarkers
+
+
 		self.plot_fft = plot_fft
 		
 		self.stop = False 
-		self.ie, self.im =  self.create_streams(StreamMarkers = True)
+		self.ie, self.im =  self.create_streams()
 		self.EEG_ARRAY = self.create_array()
 		self.MARKER_ARRAY = self.create_array(top_exp_length = 1, number_of_channels = 2)
 		self.line_counter = 0
@@ -52,7 +57,7 @@ class EEG_STREAM(object):
 			self.plot = FFT_PLOT()
 
 	
-	def create_streams(self, stream_type_eeg = 'EEG', stream_name_markers = 'CycleStart', StreamEeg = True, StreamMarkers = True, recursion_meter = 0, max_recursion_depth = 3):
+	def create_streams(self, stream_type_eeg = 'EEG', stream_name_markers = 'CycleStart', recursion_meter = 0, max_recursion_depth = 3):
 		''' Opens two LSL streams: one for EEG, another for markers, If error, tries to reconnect several times'''
 		if recursion_meter == 0:
 			recursion_meter +=1
@@ -65,7 +70,7 @@ class EEG_STREAM(object):
 			sys.exit()
 		inlet_eeg = []; inlet_markers = []
 		
-		if StreamEeg == True:
+		if self.StreamEeg == True:
 			print ("Connecting to NIC stream...")
 			if stream_type_eeg in [stream.type() for stream in resolve_stream()]:
 				streams_eeg = resolve_stream('type', 'EEG')
@@ -81,8 +86,10 @@ class EEG_STREAM(object):
 				print 'Error: NIC stream is not available\n'
 				plt.close()
 				sys.exit()
+		else:
+			inlet_eeg = []
 
-		if StreamMarkers == True:
+		if self.StreamMarkers == True:
 			print ("Connecting to Psychopy stream...")
 			if stream_name_markers in [stream.name() for stream in resolve_stream()]:
 				sterams_markers = resolve_stream('name', stream_name_markers)
@@ -97,7 +104,8 @@ class EEG_STREAM(object):
 			else:
 				print 'Error: Psychopy stream is not available\n'
 				return self.create_streams(stream_type_eeg, stream_name_markers, StreamEeg, StreamMarkers, recursion_meter)
-		
+		else:
+			inlet_markers = []
 		return inlet_eeg, inlet_markers
 	
 	def create_array(self, top_exp_length = 60, number_of_channels  = 9):
@@ -121,8 +129,17 @@ class EEG_STREAM(object):
 		fills preallocated arrays with data. After certain offset calculates FFT and updates plots. Records data on exit.'''
 	
 		while self.stop != True:	# set EEG_STREAM.stop to False to stop sutpid games and flush arrays to disc.
-			marker, timestamp_mark = self.im.pull_chunk()
-			EEG, timestamp_eeg = self.ie.pull_chunk()
+			# pull chunks if Steam_eeg and stream_markess are True
+			if self.StreamMarkers ==True:
+				marker, timestamp_mark = self.im.pull_chunk()
+			else :
+				marker, timestamp_mark = [],[]
+
+			if self.StreamEeg == True:
+				EEG, timestamp_eeg = self.ie.pull_chunk()
+			else:
+				EEG, timestamp_eeg = [], []
+
 			if timestamp_eeg:
 				self.fill_array(self.EEG_ARRAY, self.line_counter, EEG, timestamp_eeg, datatype = 'EEG')
 				self.line_counter += len(timestamp_eeg)
@@ -159,5 +176,5 @@ def compute_fft(EEG_ARRAY,offset, sample_length = 1000):
 # os.chdir(os.path.dirname(__file__)) 	# VLC PATH BUG ==> submit?
 
 if __name__ == '__main__':
-	Stream = EEG_STREAM(plot_fft = False)
+	Stream = EEG_STREAM( plot_fft = True, StreamMarkers = False)
 	Stream.plot_and_record()
