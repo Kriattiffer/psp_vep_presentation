@@ -12,7 +12,7 @@ def view():
 
 def rec():
 	''' create stream class and start recording and plotting'''
-	Stream = record.EEG_STREAM(plot_fft = False)
+	Stream = record.EEG_STREAM(plot_fft = True)
 	Stream.plot_and_record()
 	sys.stdout = open(str(os.getpid()) + ".out", "w")
 

@@ -8,7 +8,7 @@ import numpy
 mymon = monitors.Monitor('zenbook', distance=25, width = 29.5)
 mymon.setSizePix([1920, 1080])	
 window_size = (1000, 400)
-Fullscreen = True
+Fullscreen = False
 	
 	# base_mseq = [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0] # steady-state 60 fps
 # base_mseq = [0,0,0,0,0,0,1,1,1,1,1,0,1,1,1,1,0,0,1,1,1,0,1,0,1,1,0,0,0,0,1,0,1,1,1,0,0,0,1,1,0,1,1,0,1,0,0,1,0,0,0,1,0,0,1,1,0,0,1,0] # cvep 60 fps
@@ -28,6 +28,7 @@ class ENVIRONMENT():
 
 		self. time_4_one_letter = 6
 		self.number_of_inputs = 12
+		self.refresh_rate = 120
 		self.LSL = create_lsl_outlet() # create outlet for sync with NIC
 		core.wait(1)
 		self.LSL.push_sample([11]) # indicate the begining of trial
@@ -79,20 +80,31 @@ class ENVIRONMENT():
 		self.cell4.pos = [-15, 0]
 
 
-	def flipper(self, CELL, bit, n):
+	def flipper(self, N):
 		'''function gets circe object, bit of the stimuli sequence, 
 		and number of this bit, and decides what to do with circle on the next step'''
 		# if n == 2:
 		# 	CELL.fillColor = 'red'
 		# 	return
-		if n == 3:
-			CELL.fillColor = 'red'
+		# if n == 3:
+			# CELL.fillColor = 'red'
+			# return
+		if self.pattern[N][1][self.pattern[N][2]] ==1:
+			self.pattern[N][0].fillColor = self.stimcolor[self.pattern[N][0].name]
+			self.pattern[N][2] +=1
+			if self.pattern[N][2] == len(self.pattern[N][1]):
+				self.pattern[N][2] = 0
+			else:
+				pass
 			return
-		if bit ==1:
-			CELL.fillColor = self.stimcolor[CELL.name]
-			return
-		elif bit == 0:
-			CELL.fillColor = 'black'
+
+		elif self.pattern[N][1][self.pattern[N][2]] ==0:
+			self.pattern[N][0].fillColor = 'black'
+			self.pattern[N][2] +=1
+			if self.pattern[N][2] == len(self.pattern[N][1]):
+				self.pattern[N][2] = 0
+			else:
+				pass
 			return
 	
 	def exit_(self):
@@ -105,9 +117,10 @@ class ENVIRONMENT():
 		'''Core function of the experiment. Defines GUI behavior and marker sending'''
 		# create sequences for every cell; should be the same length!
 		# seq1, seq2, seq3, seq4 = base_mseq, numpy.roll(base_mseq, 8), numpy.roll(base_mseq, 16), numpy.roll(base_mseq, 24) # CVEP
+
 		steady_state_seqs = create_steady_state_sequences([6, 10, 12, 15])
 		seq1, seq2, seq3, seq4 = steady_state_seqs[0], steady_state_seqs[1], steady_state_seqs[2], steady_state_seqs[3]
-		pattern = [(self.cell1, seq1), (self.cell2, seq2), (self.cell3, seq3), (self.cell4, seq4)]
+		self.pattern = [[self.cell1, seq1, 0], [self.cell2, seq2, 0], [self.cell3, seq3,0],[self.cell4, seq4,0 ]]
 
 		tt = time.time()
 		deltalist = ['','','','','','','','','','']
@@ -116,24 +129,34 @@ class ENVIRONMENT():
 			pass
 		for a in range(self.number_of_inputs):
 			timer = core.Clock()
+			self.LSL.push_sample([222])  # indicate trial start
+			flipcount = 0
 			while timer.getTime() < self.time_4_one_letter: 
 				if 'escape' in event.getKeys():
 					self.exit_()
 				# print time.time()
-				self.LSL.push_sample([111])  # sync with EEG
+				# self.LSL.push_sample([111])  # sync with EEG
+				for pair_num in range(len(self.pattern)):
+					self.flipper(pair_num)
+				self.win.flip()
+				flipcount +=1
+				
+				# for bit_number in range(len(seq4)): # cycle through sequences 
+				# 	for pair in pattern: # decide what to do with every circle at the next refresh
+				# 		self.flipper(pair[0], pair[1][bit_number], bit_number)	
+				# 	self.win.flip() # refresh screen
 
-				for bit_number in range(len(seq4)): # cycle through sequences 
-					for pair in pattern: # decide what to do with every circle at the next refresh
-						self.flipper(pair[0], pair[1][bit_number], bit_number)	
-					self.win.flip() # refresh screen
+				### difference between desired and real time
+				if flipcount == self.refresh_rate:
+					deltaT = int((1 + (tt - time.time()))*1000)
+					deltaT = "{0:.1f}".format(round(deltaT,2))
+					deltalist[1:] = deltalist[0:-1]
+					deltalist[0] = deltaT
+					print 'delta T:	%s ms \r' % str(deltalist),
+					flipcount = 0
+					tt = time.time()
+			self.LSL.push_sample([333])  # indicate trial end
 
-				# difference between desired and real time
-				deltaT = int((1 + (tt - time.time()))*1000)
-				# deltaT = "{0:.1f}".format(round(deltaT,2))
-				deltalist[1:] = deltalist[0:-1]
-				deltalist[0] = deltaT
-				print 'delta T:	%s ms \r' % str(deltalist),
-				tt = time.time()
 			print 'next letter\n'
 			core.wait(2)
 		self.exit_()
@@ -151,6 +174,11 @@ def create_steady_state_sequences(freqs, refresh_rate = 120, limit_pulse_width =
 	for freq in freqs:
 		ss_seq = [a  for a in [1,0]*freq for b in range(refresh_rate/2/freq)]
 		ss_seqs.append(ss_seq)
+	
+	# Volosyak sequences 15 12 7.50 6.66
+	ss = ['00001111','0000111111','0000000011111111','000000001111111111']
+	ss_seqs = [[int(bit) for bit in [a for a in seq] ] for seq in ss]
+	print ss_seqs
 	return ss_seqs
 
 def create_lsl_outlet(name = 'CycleStart', DeviceMac = '00:07:80:64:EB:46'):

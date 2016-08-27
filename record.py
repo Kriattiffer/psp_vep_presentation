@@ -6,24 +6,25 @@ import sys, os
 
 class FFT_PLOT():
 	"""class for real-time plotting of FFT fot every channel"""
-	def __init__(self, max_fft_freq=140):
+	def __init__(self, sample_length, max_fft_freq=140):
 		''' here we createth plot object, to update it in loop. for performance we useth here powerful magic called 'blitting',  
 			that helpeth us to redraw only data, while keenping backround and axes intact. How it worketh remains unknown >>> look into it later!
 			max_fft_freq is DOUBLED cutoff frequency for fft_plot.'''
 
 		channels = ['1','2','3','4','5','6','7','8'] # need to set from config file		
-		self.sample_length = 1000 # number of samples to analyze
-		T = 1/500.0				#sampling rate
+		self.sample_length = sample_length # number of samples to analyze
+		T = 500.0				#sampling rate, Hz
+		self.Bin_resolution = T/sample_length
 		self.max_fft_freq = max_fft_freq
 
 		### create_plot ###
 		self.fig,self.axes = plt.subplots(nrows =3, ncols = 3, figsize = (15,10))
 		self.axes = self.axes.flatten()[:-1]
-		# plt.get_current_fig_manager().window.wm_geometry("-1920+0") # move FFT window tio second screen. Frame redraw in pesent.py starts to suck ==> possible problem with video card
+		plt.get_current_fig_manager().window.wm_geometry("-1920+0") # move FFT window tio second screen. Frame redraw in pesent.py starts to suck ==> possible problem with video card
 		self.fig.show()
 		self.backgrounds = [self.fig.canvas.copy_from_bbox(ax.bbox) for ax in self.axes]
-		x = np.arange(0, self.max_fft_freq/2, 0.5,)
-		y = np.arange(0,1,1.0/self.max_fft_freq)
+		x = np.arange(0, self.max_fft_freq, self.Bin_resolution)
+		y = np.arange(0,1,1.0/self.max_fft_freq*self.Bin_resolution)
 		self.lines = [ax.plot(x,y)[0] for ax in self.axes] #np.arange(0,1,1/119.0)	
 		[self.axes[i].set_title(channels[i], fontweight= 'bold',) for i in range(len(self.axes))]
 		self.fig.canvas.draw()
@@ -32,7 +33,7 @@ class FFT_PLOT():
 		''' receives FFT vector, trimmes it to several points (whth 500 hz refresh rate it is 60 hz maximum), redraws plot.'''
 		if not plt.fignum_exists(1): # dosent't try to update closed figure # careful with additional figures!
 			return
-		FFT = np.abs(FFT[:self.max_fft_freq,:])
+		FFT = np.abs(FFT[:self.max_fft_freq/self.Bin_resolution,:])
 		for line, ax, background, channel  in zip(self.lines, self.axes, self.backgrounds, range(len(self.axes))):
 			self.fig.canvas.restore_region(background)			
 			line.set_ydata(FFT[:, channel])
@@ -41,20 +42,23 @@ class FFT_PLOT():
 			self.fig.canvas.blit(ax.bbox)
 		self.fig.canvas.start_event_loop(0.001) #0.1 ms seems enough
 
+
+
 class EEG_STREAM(object):
 	""" class for EEG\markers streaming, plotting and recording. """
 	def __init__(self,  StreamEeg = True, StreamMarkers = True, plot_fft = True):
 		''' create objects for later use'''
 		self.StreamEeg, self.StreamMarkers = StreamEeg, StreamMarkers
 		self.plot_fft = plot_fft
-		self.stop = False 
+		self.stop = False  # set EEG_STREAM.stop to 1 to flush arrays to disc. This variable is also used to choose the exact time to stop record.
 		self.ie, self.im =  self.create_streams()
 		self.EEG_ARRAY = self.create_array()
 		self.MARKER_ARRAY = self.create_array(top_exp_length = 1, number_of_channels = 2)
 		self.line_counter = 0
 		self.line_counter_mark = 0
+		self.sample_length = 4000
 		if self.plot_fft == True:
-			self.plot = FFT_PLOT()
+			self.plot = FFT_PLOT(max_fft_freq=140, sample_length = self.sample_length)
 
 	def create_streams(self, stream_type_eeg = 'EEG', stream_name_markers = 'CycleStart', recursion_meter = 0, max_recursion_depth = 3):
 		''' Opens two LSL streams: one for EEG, another for markers, If error, tries to reconnect several times'''
@@ -127,7 +131,7 @@ class EEG_STREAM(object):
 		''' Main cycle for recording and plotting. Pulls markers and eeg from lsl inlets, 
 		fills preallocated arrays with data. After certain offset calculates FFT and updates plots. Records data on exit.'''
 	
-		while self.stop != True:	# set EEG_STREAM.stop to False to stop sutpid games and flush arrays to disc.
+		while 1: #self.stop != True:	
 			# pull chunks if Steam_eeg and stream_markess are True
 			if self.StreamMarkers ==True:
 				marker, timestamp_mark = self.im.pull_chunk()
@@ -142,34 +146,46 @@ class EEG_STREAM(object):
 			if timestamp_eeg:
 				self.fill_array(self.EEG_ARRAY, self.line_counter, EEG, timestamp_eeg, datatype = 'EEG')
 				self.line_counter += len(timestamp_eeg)
-				if self.line_counter>1000 and self.line_counter % 20 == 0 and self.plot_fft == True:
-					FFT = compute_fft(self.EEG_ARRAY, self.line_counter, sample_length = 1000)
+				if self.line_counter>self.sample_length and self.line_counter % 20 == 0 and self.plot_fft == True:
+					FFT = compute_fft(self.EEG_ARRAY, self.line_counter, sample_length = self.sample_length)
 					self.plot.update_fft(FFT)
+				if self.stop != False : # save last EEG chunk before exit
+					if timestamp_eeg[-1] >= self.stop:
+						plt.close() # oherwise get Fatal Python error: PyEval_RestoreThread: NULL tstate
+						print '\nsaving experiment data...\n'
+						eegdata = self.EEG_ARRAY[np.isnan(self.EEG_ARRAY[:,1]) != True,:]  # delete all unused lines from data matrix
+						markerdata = self.MARKER_ARRAY[np.isnan(self.MARKER_ARRAY[:,1]) != True,:]
+						np.savetxt('_data.txt', eegdata, fmt= '%.4f')
+						np.savetxt('_markers.txt', markerdata, fmt= '%.4f')
+						print '\n...data saved.\n Goodbye.\n'
+						sys.exit()
 			if timestamp_mark:
 				self.line_counter_mark += len(timestamp_mark)
 				self.fill_array(self.MARKER_ARRAY, self.line_counter_mark, marker[0], timestamp_mark, datatype = 'MARKER')				
 				if marker == [[666]]:
-					self.stop = True
-					plt.close() # oherwise get Fatal Python error: PyEval_RestoreThread: NULL tstate
-					print '\nsaving experiment data...\n'
-					eegdata = self.EEG_ARRAY[np.isnan(self.EEG_ARRAY[:,1]) != True,:]  # delete all unused lines from data matrix
-					markerdata = self.MARKER_ARRAY[np.isnan(self.MARKER_ARRAY[:,1]) != True,:]
-					np.savetxt('_data.txt', eegdata, fmt= '%.4f')
-					np.savetxt('_markers.txt', markerdata, fmt= '%.4f')
-					print '\n...data saved.\n Goodbye.\n'
-		sys.exit()
+					self.stop = timestamp_mark[0] # set last 
+	
+
+def butter_filt(data, cutoff_array, fs = 500, order=4):
+    nyq = 0.5 * fs
+    normal_cutoff = [a /nyq for a in cutoff_array]
+    b, a = signal.butter(order, normal_cutoff, btype = 'bandpass', analog=False)
+    data = signal.filtfilt(b, a, data, axis = 0)
+    return data
 
 
 def compute_fft(EEG_ARRAY,offset, sample_length = 1000):
 	''' computes fourier transform from slice of EEG_ARRAY. slice is determined by current position and length of the sample to analyze.
 	FT should be somehow normalized to fit into graph window - how?'''
 	ARRAY_SLICE =  EEG_ARRAY[offset-sample_length:offset,1:]
-	fft = np.fft.fft(ARRAY_SLICE, axis = 0)
+	# ARRAY_SLICE =butter_filt(ARRAY_SLICE, [3,40])
+	fft = np.fft.rfft(ARRAY_SLICE, axis = 0)
+	fft[0] = 0
 	# print np.shape(fft)
 	#normalize to one:	
 	# fft = fft/np.sum(fft)
 	# fft = fft/np.max(fft)
-	fft = fft/100000
+	fft = fft/10000
 	return fft
 
 
