@@ -9,7 +9,7 @@ class FFT_PLOT():
 	def __init__(self, sample_length, max_fft_freq=140):
 		''' here we createth plot object, to update it in loop. for performance we useth here powerful magic called 'blitting',  
 			that helpeth us to redraw only data, while keenping backround and axes intact. How it worketh remains unknown >>> look into it later!
-			max_fft_freq is DOUBLED cutoff frequency for fft_plot.'''
+			max_fft_freq is cutoff frequency for fft_plot.'''
 
 		channels = ['1','2','3','4','5','6','7','8'] # need to set from config file		
 		self.sample_length = sample_length # number of samples to analyze
@@ -18,13 +18,15 @@ class FFT_PLOT():
 		self.max_fft_freq = max_fft_freq
 
 		### create_plot ###
-		self.fig,self.axes = plt.subplots(nrows =3, ncols = 3, figsize = (15,10))
+		self.fig,self.axes = plt.subplots(nrows =3, ncols = 3)
 		self.axes = self.axes.flatten()[:-1]
 		plt.get_current_fig_manager().window.wm_geometry("-1920+0") # move FFT window tio second screen. Frame redraw in pesent.py starts to suck ==> possible problem with video card
 		self.fig.show()
 		self.backgrounds = [self.fig.canvas.copy_from_bbox(ax.bbox) for ax in self.axes]
 		x = np.arange(0, self.max_fft_freq, self.Bin_resolution)
 		y = np.arange(0,1,1.0/self.max_fft_freq*self.Bin_resolution)
+		y = y[x>=0]
+		print np.shape(x), np.shape(y)
 		self.lines = [ax.plot(x,y)[0] for ax in self.axes] #np.arange(0,1,1/119.0)	
 		[self.axes[i].set_title(channels[i], fontweight= 'bold',) for i in range(len(self.axes))]
 		self.fig.canvas.draw()
@@ -38,15 +40,18 @@ class FFT_PLOT():
 			self.fig.canvas.restore_region(background)			
 			line.set_ydata(FFT[:, channel])
 			# print np.argmax(FFT[:, channel])
+			ax.draw_artist(ax.patch)
 			ax.draw_artist(line)
 			self.fig.canvas.blit(ax.bbox)
+			# self.fig.canvas.update()
+			# self.fig.canvas.flush_events()
 		self.fig.canvas.start_event_loop(0.001) #0.1 ms seems enough
 
 
 
 class EEG_STREAM(object):
 	""" class for EEG\markers streaming, plotting and recording. """
-	def __init__(self,  StreamEeg = True, StreamMarkers = True, plot_fft = True):
+	def __init__(self,  sample_length = 1000,StreamEeg = True, StreamMarkers = True, plot_fft = True):
 		''' create objects for later use'''
 		self.StreamEeg, self.StreamMarkers = StreamEeg, StreamMarkers
 		self.plot_fft = plot_fft
@@ -56,9 +61,9 @@ class EEG_STREAM(object):
 		self.MARKER_ARRAY = self.create_array(top_exp_length = 1, number_of_channels = 2)
 		self.line_counter = 0
 		self.line_counter_mark = 0
-		self.sample_length = 4000
+		self.sample_length = sample_length
 		if self.plot_fft == True:
-			self.plot = FFT_PLOT(max_fft_freq=140, sample_length = self.sample_length)
+			self.plot = FFT_PLOT(max_fft_freq=60, sample_length = self.sample_length)
 
 	def create_streams(self, stream_type_eeg = 'EEG', stream_name_markers = 'CycleStart', recursion_meter = 0, max_recursion_depth = 3):
 		''' Opens two LSL streams: one for EEG, another for markers, If error, tries to reconnect several times'''
@@ -178,7 +183,7 @@ def compute_fft(EEG_ARRAY,offset, sample_length = 1000):
 	''' computes fourier transform from slice of EEG_ARRAY. slice is determined by current position and length of the sample to analyze.
 	FT should be somehow normalized to fit into graph window - how?'''
 	ARRAY_SLICE =  EEG_ARRAY[offset-sample_length:offset,1:]
-	# ARRAY_SLICE =butter_filt(ARRAY_SLICE, [3,40])
+	ARRAY_SLICE =butter_filt(ARRAY_SLICE, [3,40])
 	fft = np.fft.rfft(ARRAY_SLICE, axis = 0)
 	fft[0] = 0
 	# print np.shape(fft)
@@ -192,5 +197,5 @@ def compute_fft(EEG_ARRAY,offset, sample_length = 1000):
 # os.chdir(os.path.dirname(__file__)) 	# VLC PATH BUG ==> submit?
 
 if __name__ == '__main__':
-	Stream = EEG_STREAM( plot_fft = True, StreamMarkers = False)
+	Stream = EEG_STREAM( plot_fft = True, StreamMarkers = False, sample_length = 2000)
 	Stream.plot_and_record()
