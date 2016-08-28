@@ -6,7 +6,7 @@ import sys, os
 
 class FFT_PLOT():
 	"""class for real-time plotting of FFT fot every channel"""
-	def __init__(self, sample_length, max_fft_freq=140):
+	def __init__(self, sample_length, max_fft_freq=140, plot_to_second_screen = True):
 		''' here we createth plot object, to update it in loop. for performance we useth here powerful magic called 'blitting',  
 			that helpeth us to redraw only data, while keenping backround and axes intact. How it worketh remains unknown >>> look into it later!
 			max_fft_freq is cutoff frequency for fft_plot.'''
@@ -20,7 +20,8 @@ class FFT_PLOT():
 		### create_plot ###
 		self.fig,self.axes = plt.subplots(nrows =3, ncols = 3)
 		self.axes = self.axes.flatten()[:-1]
-		plt.get_current_fig_manager().window.wm_geometry("-1920+0") # move FFT window tio second screen. Frame redraw in pesent.py starts to suck ==> possible problem with video card
+		if plot_to_second_screen == True:
+			plt.get_current_fig_manager().window.wm_geometry("-1920+0") # move FFT window tio second screen. Frame redraw in pesent.py starts to suck ==> possible problem with video card
 		self.fig.show()
 		self.backgrounds = [self.fig.canvas.copy_from_bbox(ax.bbox) for ax in self.axes]
 		x = np.arange(0, self.max_fft_freq, self.Bin_resolution)
@@ -51,7 +52,7 @@ class FFT_PLOT():
 
 class EEG_STREAM(object):
 	""" class for EEG\markers streaming, plotting and recording. """
-	def __init__(self,  sample_length = 1000,StreamEeg = True, StreamMarkers = True, plot_fft = True):
+	def __init__(self,  sample_length = 1000,StreamEeg = True, StreamMarkers = True, plot_fft = True, plot_to_second_screen = True):
 		''' create objects for later use'''
 		self.StreamEeg, self.StreamMarkers = StreamEeg, StreamMarkers
 		self.plot_fft = plot_fft
@@ -63,7 +64,7 @@ class EEG_STREAM(object):
 		self.line_counter_mark = 0
 		self.sample_length = sample_length
 		if self.plot_fft == True:
-			self.plot = FFT_PLOT(max_fft_freq=60, sample_length = self.sample_length)
+			self.plot = FFT_PLOT(max_fft_freq=60, sample_length = self.sample_length, plot_to_second_screen = plot_to_second_screen)
 
 	def create_streams(self, stream_type_eeg = 'EEG', stream_name_markers = 'CycleStart', recursion_meter = 0, max_recursion_depth = 3):
 		''' Opens two LSL streams: one for EEG, another for markers, If error, tries to reconnect several times'''

@@ -1,4 +1,5 @@
 import multiprocessing, sys
+import numpy as np
 import present
 import record
 
@@ -12,7 +13,7 @@ def view():
 
 def rec():
 	''' create stream class and start recording and plotting'''
-	Stream = record.EEG_STREAM(plot_fft = True)
+	Stream = record.EEG_STREAM(plot_fft = True, plot_to_second_screen = False)
 	Stream.plot_and_record()
 	sys.stdout = open(str(os.getpid()) + ".out", "w")
 
@@ -23,3 +24,6 @@ if __name__ == '__main__':
 	p2 = multiprocessing.Process(target=rec)
 	p2.start()
 	p1.start()
+
+	# print np.shape(Stream.EEG_ARRAY)
+
