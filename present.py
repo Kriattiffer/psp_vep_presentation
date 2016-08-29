@@ -1,11 +1,11 @@
 from psychopy import visual, core, event, monitors
 from pylsl import StreamInfo, StreamOutlet
-import os, sys, time, socket
-import numpy
+import os, sys, time, socket, random
+import numpy as np
 
 
-# mymon = monitors.Monitor('Eizo', distance=50, width = 52.5)
-mymon = monitors.Monitor('zenbook', distance=18, width = 29.5)
+mymon = monitors.Monitor('Eizo', distance=48, width = 52.5)
+# mymon = monitors.Monitor('zenbook', distance=18, width = 29.5)
 mymon.setSizePix([1920, 1080])		
 	# base_mseq = [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0] # steady-state 60 fps
 # base_mseq = [0,0,0,0,0,0,1,1,1,1,1,0,1,1,1,1,0,0,1,1,1,0,1,0,1,1,0,0,0,0,1,0,1,1,1,0,0,0,1,1,0,1,1,0,1,0,0,1,0,0,0,1,0,0,1,1,0,0,1,0] # cvep 60 fps
@@ -13,15 +13,14 @@ base_mseq = [0,0,0,0,0,0,1,1,1,1,1,0,1,1,1,1,0,0,1,1,1,0,1,0,1,1,0,0,2,2,1,0,1,1
 # base_mseq = [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0] # steady-state
 # base_mseq = [0,0,0,0,0,0,1,1,1,1,1,0,1,1,1,1,0,0,1,1,1,0,1,0,1,1,0,0,0,0,1,0,1,1,1,0,0,0,1,1,0,1,1,0,1,0,0,1,0,0,0,1,0,0,1,1,0,0,1,0,1,0,1,0] # cvep
 # base_mseq = [a for a in base_mseq for b in [0,0]] # extend sequence
-base_mseq = numpy.array(base_mseq, dtype = int)
-
+base_mseq = np.array(base_mseq, dtype = int)
 
 
 class ENVIRONMENT():
 	""" class for visual stimulation during the experiment """
 	def __init__(self):
-		# self.stimcolor = ['red', 'green', 'blue', 'pink']
-		self.stimcolor = ['white', 'white', 'white', 'white']
+		self.stimcolor = ['red', 'green', 'blue', 'pink']
+		# self.stimcolor = ['white', 'white', 'white', 'white']
 		self.Fullscreen = False
 		self.window_size = (1000, 400)
 
@@ -133,19 +132,11 @@ class ENVIRONMENT():
 			while timer.getTime() < self.time_4_one_letter: 
 				if 'escape' in event.getKeys():
 					self.exit_()
-				# print time.time()
-				# self.LSL.push_sample([111])  # sync with EEG
 				for pair_num in range(len(self.pattern)):
 					self.flipper(pair_num)
 				self.win.flip()
 				flipcount +=1
 				
-				# for bit_number in range(len(seq4)): # cycle through sequences 
-				# 	for pair in pattern: # decide what to do with every circle at the next refresh
-				# 		self.flipper(pair[0], pair[1][bit_number], bit_number)	
-				# 	self.win.flip() # refresh screen
-
-				### difference between desired and real time
 				if flipcount == self.refresh_rate:
 					deltaT = int((1 + (tt - time.time()))*1000)
 					deltaT = "{0:.1f}".format(round(deltaT,2))
@@ -158,6 +149,29 @@ class ENVIRONMENT():
 
 			print 'next letter\n'
 			core.wait(2)
+
+		self.exit_()
+
+	def run_P300_exp(self, stim_duration_FRAMES = 6, cycle_FRAMES = 18, repetitions =  10):
+		seq = [1]*stim_duration_FRAMES + [0]*cycle_FRAMES
+
+		self.cells = [self.cell1,self.cell2,self.cell3,self.cell4]
+		self.LSL.push_sample([222])
+		while 1:
+			superseq = [0,1,2,3]*repetitions
+			random.shuffle(superseq)
+			if 'escape' in event.getKeys():
+					self.exit_()
+			for a in superseq:
+				for b in seq:
+					if b ==1:
+						self.cells[a].fillColor = self.stimcolor[self.cells[a].name]
+						self.win.flip()
+					if b ==0:
+						self.cells[a].fillColor = '#868686'
+						self.win.flip()
+			core.wait(2)
+			print 'next sequence'
 		self.exit_()
 
 
