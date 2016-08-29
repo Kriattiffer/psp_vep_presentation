@@ -52,14 +52,15 @@ class FFT_PLOT():
 
 class EEG_STREAM(object):
 	""" class for EEG\markers streaming, plotting and recording. """
-	def __init__(self,  sample_length = 1000,StreamEeg = True, StreamMarkers = True, plot_fft = True, plot_to_second_screen = True):
+	def __init__(self,  mapnames = {'eeg':'eegdata.mmap', 'markers':'markers.mmap'}, sample_length = 1000,StreamEeg = True, StreamMarkers = True, plot_fft = True, plot_to_second_screen = True):
 		''' create objects for later use'''
 		self.StreamEeg, self.StreamMarkers = StreamEeg, StreamMarkers
 		self.plot_fft = plot_fft
 		self.stop = False  # set EEG_STREAM.stop to 1 to flush arrays to disc. This variable is also used to choose the exact time to stop record.
 		self.ie, self.im =  self.create_streams()
-		self.EEG_ARRAY = self.create_array()
-		self.MARKER_ARRAY = self.create_array(top_exp_length = 1, number_of_channels = 2)
+		
+		self.EEG_ARRAY = self.create_array(mmapname=mapnames['eeg'])
+		self.MARKER_ARRAY = self.create_array(mmapname=mapnames['markers'], top_exp_length = 1, number_of_channels = 2)
 		self.line_counter = 0
 		self.line_counter_mark = 0
 		self.sample_length = sample_length
@@ -117,12 +118,14 @@ class EEG_STREAM(object):
 			inlet_markers = []
 		return inlet_eeg, inlet_markers
 	
-	def create_array(self, top_exp_length = 60, number_of_channels  = 9):
-		'''Creates very long array of Nans, which will be filled by EEG. length is determined by maximum length of the experiment in minutes'''
+	def create_array(self, mmapname, top_exp_length = 60, number_of_channels  = 9):
+		'''Creates very long array of Nans, which will be filled by EEG. length is determined by maximum length of the experiment in minutes
+			The array is mapped to disc for later use from classiffier process'''
 		record_length = 500*60*top_exp_length*1.2
 		array_shape = (record_length, number_of_channels)
 		print 'Creating array with dimensions %s...' %str(array_shape) 
-		a = np.zeros(array_shape, dtype = 'float')
+		a = np.memmap(mmapname, dtype='float32', mode='w+', shape=(array_shape))
+		# a = np.zeros(array_shape, dtype = 'float')
 		a[:,0:9] = np.NAN
 		print '... done'
 		return a
