@@ -134,7 +134,7 @@ class EEG_STREAM(object):
 		eeg_array[line_counter:line_counter+length,1:] = data_chunk
 	
 	def plot_and_record(self):
-		''' Main cycle for recording and plotting. Pulls markers and eeg from lsl inlets, 
+		''' Main cycle for recording and plotting FFT. Pulls markers and eeg from lsl inlets, 
 		fills preallocated arrays with data. After certain offset calculates FFT and updates plots. Records data on exit.'''
 	
 		while 1: #self.stop != True:	
@@ -195,7 +195,7 @@ def compute_fft(EEG_ARRAY,offset, sample_length = 1000):
 	return fft
 
 
-# os.chdir(os.path.dirname(__file__)) 	# VLC PATH BUG ==> submit?
+os.chdir(os.path.dirname(__file__)) 	# VLC PATH BUG ==> submit?
 
 if __name__ == '__main__':
 	Stream = EEG_STREAM( plot_fft = True, StreamMarkers = False, sample_length = 2000)

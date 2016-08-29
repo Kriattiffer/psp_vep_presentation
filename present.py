@@ -5,11 +5,8 @@ import numpy
 
 
 # mymon = monitors.Monitor('Eizo', distance=50, width = 52.5)
-mymon = monitors.Monitor('zenbook', distance=25, width = 29.5)
-mymon.setSizePix([1920, 1080])	
-window_size = (1000, 400)
-Fullscreen = False
-	
+mymon = monitors.Monitor('zenbook', distance=18, width = 29.5)
+mymon.setSizePix([1920, 1080])		
 	# base_mseq = [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0] # steady-state 60 fps
 # base_mseq = [0,0,0,0,0,0,1,1,1,1,1,0,1,1,1,1,0,0,1,1,1,0,1,0,1,1,0,0,0,0,1,0,1,1,1,0,0,0,1,1,0,1,1,0,1,0,0,1,0,0,0,1,0,0,1,1,0,0,1,0] # cvep 60 fps
 base_mseq = [0,0,0,0,0,0,1,1,1,1,1,0,1,1,1,1,0,0,1,1,1,0,1,0,1,1,0,0,2,2,1,0,1,1,1,0,0,0,1,1,0,1,1,0,1,0,0,1,0,0,0,1,0,0,1,1,0,0,1,0] # cvep 60 fps with red bits
@@ -25,6 +22,8 @@ class ENVIRONMENT():
 	def __init__(self):
 		# self.stimcolor = ['red', 'green', 'blue', 'pink']
 		self.stimcolor = ['white', 'white', 'white', 'white']
+		self.Fullscreen = False
+		self.window_size = (1000, 400)
 
 		self. time_4_one_letter = 6
 		self.number_of_inputs = 12
@@ -33,7 +32,7 @@ class ENVIRONMENT():
 		core.wait(1)
 		self.LSL.push_sample([11]) # indicate the begining of trial
 
-	def build_gui(self, monitor = mymon, size=window_size,
+	def build_gui(self, monitor = mymon,
 	 			  rgb = '#868686', stimrad = 2, fix_size = 1):
 		''' function for creating visual enviroment. Input: various parameters of stimuli, all optional'''
 		
@@ -50,9 +49,9 @@ class ENVIRONMENT():
 			return circ
 
 		# Create window
-		self.win = visual.Window(fullscr = Fullscreen, 
+		self.win = visual.Window(fullscr = self.Fullscreen, 
 							rgb = rgb,
-							size = size,
+							size = self.window_size,	
 							monitor = monitor
 							)
 
@@ -118,7 +117,7 @@ class ENVIRONMENT():
 		# create sequences for every cell; should be the same length!
 		# seq1, seq2, seq3, seq4 = base_mseq, numpy.roll(base_mseq, 8), numpy.roll(base_mseq, 16), numpy.roll(base_mseq, 24) # CVEP
 
-		steady_state_seqs = create_steady_state_sequences([6, 10, 12, 15])
+		steady_state_seqs = create_steady_state_sequences([6, 10, 12, 15], refresh_rate = self.refresh_rate)
 		seq1, seq2, seq3, seq4 = steady_state_seqs[0], steady_state_seqs[1], steady_state_seqs[2], steady_state_seqs[3]
 		self.pattern = [[self.cell1, seq1, 0], [self.cell2, seq2, 0], [self.cell3, seq3,0],[self.cell4, seq4,0 ]]
 
@@ -176,7 +175,11 @@ def create_steady_state_sequences(freqs, refresh_rate = 120, limit_pulse_width =
 		ss_seqs.append(ss_seq)
 	
 	# Volosyak sequences 15 12 7.50 6.66
-	ss = ['00001111','0000111111','0000000011111111','000000001111111111']
+	if refresh_rate == 120:
+		ss = ['00001111','0000111111','0000000011111111','000000001111111111']
+	elif refresh_rate == 60:
+		ss = ['0011','00111','00001111','000011111']
+
 	ss_seqs = [[int(bit) for bit in [a for a in seq] ] for seq in ss]
 	print ss_seqs
 	return ss_seqs
