@@ -2,7 +2,6 @@ import multiprocessing, sys
 import numpy as np
 import present
 import record
-True
 
 mapnames = {'eeg':'eegdata.mmap', 'markers':'markers.mmap'}
 
@@ -12,13 +11,13 @@ def view():
 	ENV.Fullscreen = True
 	ENV.refresh_rate = 120
 	ENV.build_gui(monitor = present.mymon)
-	# ENV.run_exp(present.base_mseq)
+	# ENV.run_exp()
 	ENV.run_P300_exp()
 	sys.stdout = open(str(os.getpid()) + ".out", "w")
 
 def rec():
 	''' create stream class and start recording and plotting'''
-	Stream = record.EEG_STREAM(mapnames = mapnames, plot_fft = True, plot_to_second_screen = True)
+	Stream = record.EEG_STREAM(mapnames = mapnames, plot_fft = False, plot_to_second_screen = True)
 	Stream.plot_and_record()
 	sys.stdout = open(str(os.getpid()) + ".out", "w")
 

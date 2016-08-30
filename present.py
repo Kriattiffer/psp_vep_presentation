@@ -43,6 +43,7 @@ class ENVIRONMENT():
 								fillColor = self.stimcolor[i],
 								units = 'deg',
 								autoDraw=True,
+								# autoLog=True,
 								name=i
 								)
 			return circ
@@ -152,29 +153,61 @@ class ENVIRONMENT():
 
 		self.exit_()
 
-	def run_P300_exp(self, stim_duration_FRAMES = 6, cycle_FRAMES = 18, repetitions =  10):
-		seq = [1]*stim_duration_FRAMES + [0]*cycle_FRAMES
+
+	def run_P300_exp(self, stim_duration_FRAMES = 6, ISI_FRAMES = 18, repetitions =  10):
+		'P300 expreiment. Stimuli duration and interstimuli interval should be supplied as number of frames.'
+		seq = [1]*stim_duration_FRAMES + [0]*ISI_FRAMES
 
 		self.cells = [self.cell1,self.cell2,self.cell3,self.cell4]
-		self.LSL.push_sample([222])
+
+		on = 0
+		p300_markers_on =  [[111], [222],[333],[444]]
+		# p300_markers_off =  [[0001], [2221],[3331],[4441]]
+		while 's' not in event.getKeys():
+			pass
 		while 1:
-			superseq = [0,1,2,3]*repetitions
-			random.shuffle(superseq)
-			if 'escape' in event.getKeys():
-					self.exit_()
+			self.LSL.push_sample([555]) # input of new letter
+			superseq = generate_p300_superseq(repetitions = repetitions)
+			core.wait(2)
+
+			tt = time.time()
+			deltalist = ['','','','','','','','','','']
 			for a in superseq:
+
 				for b in seq:
 					if b ==1:
 						self.cells[a].fillColor = self.stimcolor[self.cells[a].name]
 						self.win.flip()
+						if on ==0:
+							self.LSL.push_sample(p300_markers_on[a])
+							on = 1
 					if b ==0:
+						on = 0
 						self.cells[a].fillColor = '#868686'
 						self.win.flip()
-			core.wait(2)
-			print 'next sequence'
+
+				deltaT = time.time() - tt
+				deltaT = "{0:2.0f}".format(round((deltaT*1000)-200,2))
+				deltalist[1:] = deltalist[0:-1]
+				deltalist[0] = deltaT
+				print 'delta T:%s ms \r' % str(deltalist),
+				if 'escape' in event.getKeys():
+					self.exit_()
+				tt = time.time()
+								
+			print 'next letter'
 		self.exit_()
 
-
+def generate_p300_superseq(numbers = [0,1,2,3], repetitions = 10):
+	''' receives IDs of stimuli, and number of repetitions, returns stimuli sequence without repeats'''
+	seq = numbers*repetitions
+	random.shuffle(seq) # generate random list
+	dd_l =  [seq[a] for a in range(len(seq)) if seq[a] != seq[a-1]] #find duplicates
+	dup_l =  [seq[a] for a in range(len(seq)) if seq[a] == seq[a-1]]
+	for a in dup_l: # deduplicate
+		p = [b for b in range(len(dd_l)) if dd_l[b] !=a and dd_l[b-1] !=a]
+		dd_l.insert(p[1],a)
+	return dd_l
 
 def create_steady_state_sequences(freqs, refresh_rate = 120, limit_pulse_width = None, phase_rotate = None):
 	'''Function receives list of frequencies and screen refresh_rate, returns list of sequences, corresponding to this frequencies. 
