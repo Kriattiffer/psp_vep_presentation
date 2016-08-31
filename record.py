@@ -125,7 +125,6 @@ class EEG_STREAM(object):
 		array_shape = (record_length, number_of_channels)
 		print 'Creating array with dimensions %s...' %str(array_shape) 
 		a = np.memmap(mmapname, dtype='float', mode='w+', shape=(array_shape))
-		print type(a)
 		# a = np.zeros(array_shape, dtype = 'float')
 		a[:,0:9] = np.NAN
 		print '... done'
@@ -134,7 +133,6 @@ class EEG_STREAM(object):
 	def fill_array(self, eeg_array, line_counter, data_chunk, timestamp_chunk, datatype = 'EEG'):
 		'''Recieves preallocated array of NaNs, piece of data, piece of offsets and number of line, inserts everything into array. Works both with EEG and with markers '''
 		length = len(timestamp_chunk)
-		print timestamp_chunk
 		eeg_array[line_counter:line_counter+length, 0] = timestamp_chunk
 		eeg_array[line_counter:line_counter+length,1:] = data_chunk
 	

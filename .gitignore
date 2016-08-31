@@ -91,3 +91,6 @@ ENV/
 _data.txt
 _markers.txt
 *.mmap
+*.easy
+*.info
+

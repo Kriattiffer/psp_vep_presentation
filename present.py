@@ -19,8 +19,9 @@ base_mseq = np.array(base_mseq, dtype = int)
 class ENVIRONMENT():
 	""" class for visual stimulation during the experiment """
 	def __init__(self):
-		self.stimcolor = ['red', 'green', 'blue', 'pink']
-		# self.stimcolor = ['white', 'white', 'white', 'white']
+		self.rgb = '#868686'
+		self.stimcolor_p300 = [[self.rgb,self.rgb,self.rgb,self.rgb],['red', 'green', 'blue', 'pink']]
+		self.stimcolor = ['white', 'white', 'white', 'white']
 		self.Fullscreen = False
 		self.window_size = (1000, 400)
 
@@ -109,10 +110,10 @@ class ENVIRONMENT():
 	def exit_(self):
 		''' exit and kill dependent processes'''
 		self.LSL.push_sample([666])
-		core.wait(0.3)
+		core.wait(0.5)
 		sys.exit()
 
-	def run_exp(self, base_mseq):
+	def run_exp(self):
 		'''Core function of the experiment. Defines GUI behavior and marker sending'''
 		# create sequences for every cell; should be the same length!
 		# seq1, seq2, seq3, seq4 = base_mseq, numpy.roll(base_mseq, 8), numpy.roll(base_mseq, 16), numpy.roll(base_mseq, 24) # CVEP
@@ -154,7 +155,7 @@ class ENVIRONMENT():
 		self.exit_()
 
 
-	def run_P300_exp(self, stim_duration_FRAMES = 6, ISI_FRAMES = 18, repetitions =  10):
+	def run_P300_exp(self, stim_duration_FRAMES = 6, ISI_FRAMES = 18, repetitions =  12):
 		'P300 expreiment. Stimuli duration and interstimuli interval should be supplied as number of frames.'
 		seq = [1]*stim_duration_FRAMES + [0]*ISI_FRAMES
 
@@ -165,34 +166,33 @@ class ENVIRONMENT():
 		# p300_markers_off =  [[0001], [2221],[3331],[4441]]
 		while 's' not in event.getKeys():
 			pass
-		while 1:
+		for letter in range(12):
 			self.LSL.push_sample([555]) # input of new letter
 			superseq = generate_p300_superseq(repetitions = repetitions)
 			core.wait(2)
 
-			tt = time.time()
 			deltalist = ['','','','','','','','','','']
+			if 'escape' in event.getKeys():
+				self.exit_()
+			tt = time.time()
 			for a in superseq:
+				#check for Esc key
 
-				for b in seq:
-					if b ==1:
-						self.cells[a].fillColor = self.stimcolor[self.cells[a].name]
-						self.win.flip()
-						if on ==0:
-							self.LSL.push_sample(p300_markers_on[a])
-							on = 1
-					if b ==0:
-						on = 0
-						self.cells[a].fillColor = '#868686'
-						self.win.flip()
-
+				self.cells[a].fillColor = self.stimcolor_p300[1][self.cells[a].name]
+				self.win.flip()
+				self.LSL.push_sample(p300_markers_on[a])
+				for b in seq[1:]:
+					self.cells[a].fillColor = self.stimcolor_p300[b][self.cells[a].name]
+					self.win.flip()
+				#acess timing accuracy
 				deltaT = time.time() - tt
-				deltaT = "{0:2.0f}".format(round((deltaT*1000)-200,2))
-				deltalist[1:] = deltalist[0:-1]
-				deltalist[0] = deltaT
-				print 'delta T:%s ms \r' % str(deltalist),
-				if 'escape' in event.getKeys():
-					self.exit_()
+				deltaT = "{0:2.2f}".format(round((deltaT*1000)-200,2))
+				print deltaT
+				# deltalist[1:] = deltalist[0:-1]
+				# deltalist[0] = deltaT
+				# print 'delta T:%s ms \r' % str(deltalist),
+				
+
 				tt = time.time()
 								
 			print 'next letter'

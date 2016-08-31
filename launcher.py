@@ -11,9 +11,9 @@ def view():
 	ENV = present.ENVIRONMENT()
 	ENV.Fullscreen = True
 	ENV.refresh_rate = 120
-	ENV.build_gui(monitor = present.mymon)
-	# ENV.run_exp()
-	ENV.run_P300_exp()
+	ENV.build_gui(monitor = present.mymon, rgb = ENV.rgb)
+	ENV.run_exp()
+	# ENV.run_P300_exp()
 	sys.stdout = open(str(os.getpid()) + ".out", "w")
 
 def rec():
