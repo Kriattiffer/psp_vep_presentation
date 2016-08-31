@@ -2,6 +2,7 @@ import multiprocessing, sys
 import numpy as np
 import present
 import record
+# import classify
 
 mapnames = {'eeg':'eegdata.mmap', 'markers':'markers.mmap'}
 

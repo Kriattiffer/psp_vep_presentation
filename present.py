@@ -29,7 +29,7 @@ class ENVIRONMENT():
 		self.refresh_rate = 120
 		self.LSL = create_lsl_outlet() # create outlet for sync with NIC
 		core.wait(1)
-		self.LSL.push_sample([11]) # indicate the begining of trial
+		self.LSL.push_sample([11]) # indicate the end of __init__
 
 	def build_gui(self, monitor = mymon,
 	 			  rgb = '#868686', stimrad = 2, fix_size = 1):
@@ -40,7 +40,7 @@ class ENVIRONMENT():
 			circ = visual.Circle(self.win,
 								radius=stimrad,
 								lineColor = None, 
-								fillColor = self.stimcolor[i],
+								fillColor = rgb,#self.stimcolor[i],
 								units = 'deg',
 								autoDraw=True,
 								# autoLog=True,
@@ -80,7 +80,7 @@ class ENVIRONMENT():
 
 
 	def flipper(self, N):
-		'''function gets circe object, bit of the stimuli sequence, 
+		'''function gets circe object, bit of the stimuli sequence (SSVEP or C-VEP), 
 		and number of this bit, and decides what to do with circle on the next step'''
 		# if n == 2:
 		# 	CELL.fillColor = 'red'
