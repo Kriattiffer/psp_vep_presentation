@@ -28,9 +28,9 @@ def from_LSL():
 	eeg[:,1:] = butter_filt(eeg[:,1:], (0.1,40))
 
 	aim_list = [111,222,333,444]*12
-	aim_list = [111,222,333,444,555,666]*12
+	# aim_list = [111,222,333,444,555,666]*12
 
-	mmm = markers[:,1]==777
+	mmm = markers[:,1]==mstart
 	mmm[-1] = True
 	letter_slices = [[],[],[],[],[],[],[],[],[],[],[],[]]
 	cc = -1
@@ -78,9 +78,9 @@ def from_easyfile():
 
 	print np.shape(eeg)
 	aim_list = [111,222,333,444]*12
-	aim_list = [111,222,333,444,555,666]*12
+	# aim_list = [111,222,333,444,555,666]*12
 
-	letter_slices_ind = np.arange(np.shape(eeg)[0])[np.logical_or(eeg[:,-2] == 777, eeg[:,-2] == 999)] 
+	letter_slices_ind = np.arange(np.shape(eeg)[0])[np.logical_or(eeg[:,-2] == mstart, eeg[:,-2] == mend )] 
 	LETTERS = np.split(eeg, letter_slices_ind, axis = 0)[1:-1]
 	print len(LETTERS)
 
@@ -116,8 +116,9 @@ def from_easyfile():
 
 		# aim_eeg = 
 		# print aim_ind
-
-os.chdir('./_data/square_eeg_drl_last')
+mend = 666
+mstart = 555
+os.chdir('./_data/0109_squares/square_eeg_drl_4')
 sample_length = 512
 
 lsleeg = from_LSL()
