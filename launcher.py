@@ -1,13 +1,12 @@
-import multiprocessing, sys
+import multiprocessing, sys # os???
 from tempfile import mkdtemp
-
 import numpy as np
 import present
 import record
 import classify
 
 mapnames = {'eeg':'eegdata.mmap', 'markers':'markers.mmap'}
-print mkdtemp()
+# print mkdtemp()
 def view():
 	'''create stimulation window'''
 	ENV = present.ENVIRONMENT()
@@ -16,7 +15,7 @@ def view():
 	ENV.build_gui(monitor = present.mymon, rgb = ENV.rgb)
 	# ENV.run_exp()
 	ENV.run_P300_exp()
-	sys.stdout = open(str(os.getpid()) + ".out", "w")
+	sys.stdout = open(str(os.getpid()) + ".out", "w") #MAGIC
 
 def rec():
 	''' create stream class and start recording and plotting'''

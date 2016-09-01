@@ -170,13 +170,24 @@ class ENVIRONMENT():
 
 		on = 0
 		p300_markers_on =  [[111], [222],[333],[444]]
+		aims= [0,1,2,3]*3
 		# p300_markers_off =  [[0001], [2221],[3331],[4441]]
 		while 's' not in event.getKeys():
 			pass
-		for letter in range(12):
+		for letter, aim in zip(range(12), aims):
 			self.LSL.push_sample([555]) # input of new letter
 			superseq = generate_p300_superseq(repetitions = repetitions)
+
+			# aim_stimuli
+			core.wait(1)
+			self.cells[aim].fillColor = self.stimcolor_p300[1][self.cells[aim].name]
+			self.win.flip()
 			core.wait(2)
+			self.cells[aim].fillColor = self.stimcolor_p300[0][self.cells[aim].name]
+			self.win.flip()
+			core.wait(1)
+
+
 
 			deltalist = ['','','','','','','','','','']
 			if 'escape' in event.getKeys():
