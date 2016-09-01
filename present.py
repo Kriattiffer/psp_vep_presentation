@@ -1,6 +1,6 @@
+import os, sys, time, socket, random, datetime
 from psychopy import visual, core, event, monitors
 from pylsl import StreamInfo, StreamOutlet
-import os, sys, time, socket, random
 import numpy as np
 
 
@@ -20,12 +20,14 @@ class ENVIRONMENT():
 	""" class for visual stimulation during the experiment """
 	def __init__(self):
 		self.rgb = '#868686'
-		self.stimcolor_p300 = [[self.rgb,self.rgb,self.rgb,self.rgb],['red', 'green', 'blue', 'pink']]
+		self.stimcolor_p300 = [[self.rgb,self.rgb,self.rgb,self.rgb,self.rgb,self.rgb],['red', 'green', 'blue', 'pink', 'yellow', 'purple']]
 		self.stimcolor = ['white', 'white', 'white', 'white']
 		self.Fullscreen = False
 		self.window_size = (1000, 400)
 
 		self. time_4_one_letter = 6
+
+		self.stimuli_number = 6		
 		self.number_of_inputs = 12
 		self.refresh_rate = 120
 		self.LSL = create_lsl_outlet() # create outlet for sync with NIC
@@ -61,8 +63,8 @@ class ENVIRONMENT():
 		self.cell2 = create_circle(1)
 		self.cell3 = create_circle(2)
 		self.cell4 = create_circle(3)
-		# self.cell5 = create_circle(4)
-		# self.cell6 = create_circle(5)
+		self.cell5 = create_circle(4)
+		self.cell6 = create_circle(5)
 
 
 
@@ -78,12 +80,14 @@ class ENVIRONMENT():
 								)
 
 		# position circles over board. units are taken from the create_circle function
+
 		self.cell1.pos = [0, 15]
 		self.cell2.pos = [15, 0]
 		self.cell3.pos = [0, -15]
 		self.cell4.pos = [-15, 0]
-		# self.cell5.pos = [-15, 0]
-		# self.cell6.pos = [-15, 0]
+		# if self.stimuli_number ==
+		self.cell5.pos = [-15, -8]
+		self.cell6.pos = [8, 15]
 
 
 
@@ -116,7 +120,7 @@ class ENVIRONMENT():
 	
 	def exit_(self):
 		''' exit and kill dependent processes'''
-		self.LSL.push_sample([666])
+		self.LSL.push_sample([999])
 		core.wait(0.5)
 		sys.exit()
 
@@ -162,61 +166,66 @@ class ENVIRONMENT():
 		self.exit_()
 
 
-	def run_P300_exp(self, stim_duration_FRAMES = 6, ISI_FRAMES = 18, repetitions =  12):
+	def run_P300_exp(self, stimuli_number = 6, stim_duration_FRAMES = 6, ISI_FRAMES = 18, repetitions =  12):
 		'P300 expreiment. Stimuli duration and interstimuli interval should be supplied as number of frames.'
 		seq = [1]*stim_duration_FRAMES + [0]*ISI_FRAMES
 
-		self.cells = [self.cell1,self.cell2,self.cell3,self.cell4]
+		# self.cells = [self.cell1,self.cell2,self.cell3,self.cell4]
+		self.cells = [self.cell1,self.cell2,self.cell3,self.cell4, self.cell5, self.cell6][0:stimuli_number]
 
-		on = 0
-		p300_markers_on =  [[111], [222],[333],[444]]
-		aims= [0,1,2,3]*3
-		# p300_markers_off =  [[0001], [2221],[3331],[4441]]
-		while 's' not in event.getKeys():
+
+		p300_markers_on =  [[111], [222],[333],[444], [555], [666]]
+		aims= range(self.stimuli_number)*3
+		while 's' not in event.getKeys(): # wait for S key to start
 			pass
 		for letter, aim in zip(range(12), aims):
-			self.LSL.push_sample([555]) # input of new letter
-			superseq = generate_p300_superseq(repetitions = repetitions)
+			self.LSL.push_sample([777]) # input of new letter
+			superseq = generate_p300_superseq(numbers = range(self.stimuli_number), repetitions = repetitions)
 
 			# aim_stimuli
-			core.wait(1)
-			self.cells[aim].fillColor = self.stimcolor_p300[1][self.cells[aim].name]
+			print [self.cells[aim].name] 
+			self.cells[aim].fillColor = self.stimcolor_p300[1][self.cells[aim].name] # indicate aim stimuli
 			self.win.flip()
 			core.wait(2)
-			self.cells[aim].fillColor = self.stimcolor_p300[0][self.cells[aim].name]
+			self.cells[aim].fillColor = self.stimcolor_p300[0][self.cells[aim].name] # fade to grey
 			self.win.flip()
 			core.wait(1)
-
-
 
 			deltalist = ['','','','','','','','','','']
 			if 'escape' in event.getKeys():
 				self.exit_()
+
+			self.win.flip() # sycnhronize time.time() with first flip() => otherwise first interval seems longer.
 			tt = time.time()
 			for a in superseq:
-				#check for Esc key
-
 				self.cells[a].fillColor = self.stimcolor_p300[1][self.cells[a].name]
 				self.win.flip()
-				self.LSL.push_sample(p300_markers_on[a])
+				self.LSL.push_sample(p300_markers_on[a]) # push marker immdiately after first bit of the sequence
+				## tried to sync _data and .easy files.
+				# dtm =  datetime.datetime.now()
+				# dtmint = int(time.mktime(dtm.timetuple())*1000 + dtm.microsecond/1000)
+				# dtmint = dtmint - (dtmint/1000000)*1000000 +  p300_markers_on[a][0]*1000000
+				# print int(time.mktime(dtm.timetuple())*1000 + dtm.microsecond/1000)
+				# self.LSL.push_sample([dtmint]) # push marker immdiately after first bit of the sequence; first digit is the number, other  - tail of Unix Time
+
+
 				for b in seq[1:]:
 					self.cells[a].fillColor = self.stimcolor_p300[b][self.cells[a].name]
 					self.win.flip()
+				
 				#acess timing accuracy
 				deltaT = time.time() - tt
-				deltaT = "{0:2.2f}".format(round((deltaT*1000)-200,2))
-				print deltaT
-				# deltalist[1:] = deltalist[0:-1]
-				# deltalist[0] = deltaT
-				# print 'delta T:%s ms \r' % str(deltalist),
-				
-
+				deltaT = "{0:2.0f}".format(round((deltaT*1000)-200,2))
+				# print deltaT
+				deltalist[1:] = deltalist[0:-1]
+				deltalist[0] = deltaT
+				print 'delta T:%s ms \r' % str(deltalist),
 				tt = time.time()
 								
 			print 'next letter'
 		self.exit_()
 
-def generate_p300_superseq(numbers = [0,1,2,3], repetitions = 10):
+def generate_p300_superseq(numbers =[0,1,2,3], repetitions = 10):
 	''' receives IDs of stimuli, and number of repetitions, returns stimuli sequence without repeats'''
 	seq = numbers*repetitions
 	random.shuffle(seq) # generate random list
@@ -255,7 +264,7 @@ def create_lsl_outlet(name = 'CycleStart', DeviceMac = '00:07:80:64:EB:46'):
 	outlet =StreamOutlet(info)
 	return outlet
 
-
+# 
 def view():
 	'''function for multiprocessing'''
 	ENV = ENVIRONMENT()
@@ -265,5 +274,7 @@ def view():
 if __name__ == '__main__':
 	
 	ENV = ENVIRONMENT()
-	ENV.build_gui(monitor = mymon)
-	ENV.run_exp(base_mseq)
+	ENV.Fullscreen = True
+	ENV.refresh_rate = 120
+	ENV.build_gui(monitor = mymon, rgb = ENV.rgb)
+	ENV.run_P300_exp()

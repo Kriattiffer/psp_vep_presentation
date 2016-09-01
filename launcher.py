@@ -1,4 +1,5 @@
 import multiprocessing, sys # os???
+# import os
 from tempfile import mkdtemp
 import numpy as np
 import present
@@ -33,8 +34,8 @@ if __name__ == '__main__':
 	p1 = multiprocessing.Process(target=view)
 	print 'startig backend...'
 	p2 = multiprocessing.Process(target=rec)
-	print 'startig classifier...'
-	p2 = multiprocessing.Process(target=class_)
+	# print 'startig classifier...'
+	# p2 = multiprocessing.Process(target=class_)
 
 	p2.start()
 	p1.start()

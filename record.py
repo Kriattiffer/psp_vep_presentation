@@ -142,20 +142,23 @@ class EEG_STREAM(object):
 	
 		while 1: #self.stop != True:	
 			# pull chunks if Steam_eeg and stream_markess are True
-			if self.StreamMarkers ==True:
-				marker, timestamp_mark = self.im.pull_chunk()
-			else :
-				marker, timestamp_mark = [],[]
-
+			
 			if self.StreamEeg == True:
 				EEG, timestamp_eeg = self.ie.pull_chunk()
 			else:
 				EEG, timestamp_eeg = [], []
 
+			if self.StreamMarkers ==True:
+				marker, timestamp_mark = self.im.pull_chunk()
+			else :
+				marker, timestamp_mark = [],[]
+
+
+
 			if timestamp_eeg:
 				self.fill_array(self.EEG_ARRAY, self.line_counter, EEG, timestamp_eeg, datatype = 'EEG')
 				self.line_counter += len(timestamp_eeg)
-				if self.line_counter>self.sample_length and self.line_counter % 20 == 0 and self.plot_fft == True:
+				if self.plot_fft == True and self.line_counter>self.sample_length and self.line_counter % 20 == 0:
 					FFT = compute_fft(self.EEG_ARRAY, self.line_counter, sample_length = self.sample_length)
 					self.plot.update_fft(FFT)
 				# print timestamp_eeg
@@ -172,7 +175,7 @@ class EEG_STREAM(object):
 			if timestamp_mark:
 				self.line_counter_mark += len(timestamp_mark)
 				self.fill_array(self.MARKER_ARRAY, self.line_counter_mark, marker[0], timestamp_mark, datatype = 'MARKER')				
-				if marker == [[666]]:
+				if marker == [[999]]:
 					self.stop = timestamp_mark[0] # set last 
 	
 
