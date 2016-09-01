@@ -61,6 +61,10 @@ class ENVIRONMENT():
 		self.cell2 = create_circle(1)
 		self.cell3 = create_circle(2)
 		self.cell4 = create_circle(3)
+		# self.cell5 = create_circle(4)
+		# self.cell6 = create_circle(5)
+
+
 
 		# Create fixation cross
 		self.fixation = visual.ShapeStim(self.win,  							
@@ -78,6 +82,9 @@ class ENVIRONMENT():
 		self.cell2.pos = [15, 0]
 		self.cell3.pos = [0, -15]
 		self.cell4.pos = [-15, 0]
+		# self.cell5.pos = [-15, 0]
+		# self.cell6.pos = [-15, 0]
+
 
 
 	def flipper(self, N):
