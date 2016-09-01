@@ -16,7 +16,9 @@ class FFT_PLOT():
 		T = 500.0				#sampling rate, Hz
 		self.Bin_resolution = T/sample_length
 		self.max_fft_freq = max_fft_freq
-
+		###preallocate array for fourier vectors
+		self.fouriers = []
+		self.sft = 'list'
 		### create_plot ###
 		self.fig,self.axes = plt.subplots(nrows =3, ncols = 3)
 		self.axes = self.axes.flatten()[:-1]
@@ -32,11 +34,25 @@ class FFT_PLOT():
 		[self.axes[i].set_title(channels[i], fontweight= 'bold',) for i in range(len(self.axes))]
 		self.fig.canvas.draw()
 
-	def update_fft(self, FFT):
+	def update_fft(self, FFT, averaging_bin=10):
 		''' receives FFT vector, trimmes it to several points (whth 500 hz refresh rate it is 60 hz maximum), redraws plot.'''
 		if not plt.fignum_exists(1): # dosent't try to update closed figure # careful with additional figures!
 			return
+
 		FFT = np.abs(FFT[:self.max_fft_freq/self.Bin_resolution,:])
+		# print type(self.fouriers)
+		if self.sft == 'list':
+			if len(self.fouriers) < averaging_bin:
+				self.fouriers.append(FFT)
+			else:
+				self.fouriers = np.array(self.fouriers)
+				self.sft = type(self.fouriers)
+		else:
+			# print np.shape(self.fouriers[0:-1])
+			self.fouriers[0:-1] = self.fouriers[1:]
+			self.fouriers[-1] = FFT
+			FFT = np.average(self.fouriers, axis = 0)
+
 		for line, ax, background, channel  in zip(self.lines, self.axes, self.backgrounds, range(len(self.axes))):
 			self.fig.canvas.restore_region(background)			
 			line.set_ydata(FFT[:, channel])
@@ -158,7 +174,7 @@ class EEG_STREAM(object):
 			if timestamp_eeg:
 				self.fill_array(self.EEG_ARRAY, self.line_counter, EEG, timestamp_eeg, datatype = 'EEG')
 				self.line_counter += len(timestamp_eeg)
-				if self.plot_fft == True and self.line_counter>self.sample_length and self.line_counter % 20 == 0:
+				if self.plot_fft == True and self.line_counter>self.sample_length and self.line_counter % 10 == 0:
 					FFT = compute_fft(self.EEG_ARRAY, self.line_counter, sample_length = self.sample_length)
 					self.plot.update_fft(FFT)
 				# print timestamp_eeg

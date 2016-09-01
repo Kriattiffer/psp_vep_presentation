@@ -66,8 +66,6 @@ class ENVIRONMENT():
 		self.cell5 = create_circle(4)
 		self.cell6 = create_circle(5)
 
-
-
 		# Create fixation cross
 		self.fixation = visual.ShapeStim(self.win,  							
 								vertices=((0, -1*fix_size), (0, fix_size), (0,0), 
