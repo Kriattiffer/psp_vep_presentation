@@ -159,17 +159,24 @@ class EEG_STREAM(object):
 		while 1: #self.stop != True:	
 			# pull chunks if Steam_eeg and stream_markess are True
 			
-			if self.StreamEeg == True:
+			# if self.StreamEeg == True:
+			try:
 				EEG, timestamp_eeg = self.ie.pull_chunk()
-			else:
+			except:
 				EEG, timestamp_eeg = [], []
 
-			if self.StreamMarkers ==True:
+			# if self.StreamMarkers ==True:
+			try:
 				marker, timestamp_mark = self.im.pull_chunk()
-			else :
+			except :
 				marker, timestamp_mark = [],[]
+			
 
-
+			if timestamp_mark:
+				self.line_counter_mark += len(timestamp_mark)
+				self.fill_array(self.MARKER_ARRAY, self.line_counter_mark, marker[0], timestamp_mark, datatype = 'MARKER')				
+				if marker == [[999]]:
+					self.stop = timestamp_mark[0] # set last 
 
 			if timestamp_eeg:
 				self.fill_array(self.EEG_ARRAY, self.line_counter, EEG, timestamp_eeg, datatype = 'EEG')
@@ -188,11 +195,7 @@ class EEG_STREAM(object):
 						np.savetxt('_markers.txt', markerdata, fmt= '%.4f')
 						print '\n...data saved.\n Goodbye.\n'
 						sys.exit()
-			if timestamp_mark:
-				self.line_counter_mark += len(timestamp_mark)
-				self.fill_array(self.MARKER_ARRAY, self.line_counter_mark, marker[0], timestamp_mark, datatype = 'MARKER')				
-				if marker == [[999]]:
-					self.stop = timestamp_mark[0] # set last 
+
 	
 
 def butter_filt(data, cutoff_array, fs = 500, order=4):

@@ -164,7 +164,7 @@ class ENVIRONMENT():
 		self.exit_()
 
 
-	def run_P300_exp(self, stimuli_number = 6, stim_duration_FRAMES = 6, ISI_FRAMES = 18, repetitions =  12):
+	def run_P300_exp(self, stimuli_number = 6, stim_duration_FRAMES = 6, ISI_FRAMES = 18, repetitions =  20):
 		'P300 expreiment. Stimuli duration and interstimuli interval should be supplied as number of frames.'
 		seq = [1]*stim_duration_FRAMES + [0]*ISI_FRAMES
 

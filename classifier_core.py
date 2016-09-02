@@ -1,6 +1,7 @@
 import numpy as np
 from record import butter_filt
 from matplotlib import pyplot as plt
+from scipy import signal
 import os
 
 def slice_eeg(offsets,eeg):
@@ -22,12 +23,15 @@ def slice_eeg(offsets,eeg):
 
 def from_LSL():
 	markers = np.genfromtxt('_markers.txt')
+
 	eeg = np.genfromtxt('_data.txt')
 
+	# plt.plot(eeg[:,1])
 	print np.shape(eeg)
+	# plt.show()
 	eeg[:,1:] = butter_filt(eeg[:,1:], (0.1,40))
 
-	aim_list = [111,222,333,444]*12
+	aim_list = [111]
 	# aim_list = [111,222,333,444,555,666]*12
 
 	mmm = markers[:,1]==mstart
@@ -65,7 +69,7 @@ def from_LSL():
 	plt.title('LSL')
 
 	# plt.show()
-	plt.clf()
+	# plt.clf()
 	return [aim_eeg[:,1:], non_aim_eeg[:,1:]]
 
 	# for a in range(12):
@@ -116,19 +120,57 @@ def from_easyfile():
 
 		# aim_eeg = 
 		# print aim_ind
-mend = 666
-mstart = 555
-os.chdir('./_data/0109_squares/square_eeg_drl_4')
+mend = 999
+mstart = 777
+# os.chdir('./_data/0109_squares/square_eeg_drl_5')
+# os.chdir('./_data')
+# eeg1 = np.genfromtxt([a for a in os.listdir('.') if 'Patient01.easy' in a][0])
+# eeg1[:,:-2] = butter_filt(eeg[:,:-2], (0.1,40))
+# markers = np.genfromtxt('_markers.txt')
+# eeg2 = np.genfromtxt('_data.txt')
+
+
+
+
+# markers = np.genfromtxt('_markers.txt')
+# eeg = np.genfromtxt('_data.txt')
+# eeg = eeg[:,:2]
+# print np.shape(eeg)
+# print 'plotted'
+
+# maxeeg = eeg[eeg[:,1]>800]
+# print eeg
+# # plt.plot(maxeeg[:,1])
+# ex = signal.argrelextrema(maxeeg[:,1], np.greater)
+
+# ex = ex[0]
+# # ex = maxeeg[ex][:,0]
+# # print ex
+# exx = ex[0:-2] - ex[1:-1]
+# plt.plot(exx)
+
 sample_length = 512
+# eeg = np.genfromtxt('_data.txt')
+# eeg[:,1:] = butter_filt(eeg[:,1:], (0.1,40))
+
+# nps = np.shape(eeg)
+# print nps
+
+# cut = (nps[0] - nps[0]%sample_length)
+# eeg = eeg[:cut,:]
+# eeg = eeg.reshape(cut/sample_length, sample_length, nps[1])
+# tmpl = np.average(eeg, axis = 0)
+# print tmpl[:,1:]
+# plt.plot(tmpl[:,1:])
+# plt.show()
+
 
 lsleeg = from_LSL()
-efeeg = from_easyfile()
+# efeeg = from_easyfile()
 # plt.plot(lsleeg[1]-efeeg[1]/1000)
 # plt.plot(lsleeg[0]-efeeg[0]/1000)
-
-plt.plot(lsleeg[0]) 
-plt.plot(efeeg[0]/1000) 
-print 'plotted'
+# plt.plot(eeg2[:,1])
+plt.plot(lsleeg[0])
+# plt.plot(efeeg[0]/1000) 
 plt.show()
-# a = np.array([0,1,0,1,0,2,1,0,1,3])
 # print np.logical_or(a==1, a==2)
