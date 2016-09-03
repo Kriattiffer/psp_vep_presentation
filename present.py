@@ -25,7 +25,7 @@ class ENVIRONMENT():
 		self.Fullscreen = False
 		self.window_size = (1000, 400)
 
-		self. time_4_one_letter = 6
+		self. time_4_one_letter = 6 #steadystate
 
 		self.stimuli_number = 6		
 		self.number_of_inputs = 12
@@ -83,9 +83,9 @@ class ENVIRONMENT():
 		self.cell2.pos = [15, 0]
 		self.cell3.pos = [0, -15]
 		self.cell4.pos = [-15, 0]
-		# if self.stimuli_number ==
-		self.cell5.pos = [-15, -8]
-		self.cell6.pos = [8, 15]
+		if self.stimuli_number == 6:
+			self.cell5.pos = [-15, -8]
+			self.cell6.pos = [8, 15]
 
 
 
@@ -164,19 +164,20 @@ class ENVIRONMENT():
 		self.exit_()
 
 
-	def run_P300_exp(self, stimuli_number = 6, stim_duration_FRAMES = 6, ISI_FRAMES = 18, repetitions =  20):
+	def run_P300_exp(self, stim_duration_FRAMES = 6, ISI_FRAMES = 18, repetitions =  10, inputs = 60):
 		'P300 expreiment. Stimuli duration and interstimuli interval should be supplied as number of frames.'
 		seq = [1]*stim_duration_FRAMES + [0]*ISI_FRAMES
 
 		# self.cells = [self.cell1,self.cell2,self.cell3,self.cell4]
-		self.cells = [self.cell1,self.cell2,self.cell3,self.cell4, self.cell5, self.cell6][0:stimuli_number]
+		self.cells = [self.cell1,self.cell2,self.cell3,self.cell4, self.cell5, self.cell6][0:self.stimuli_number]
 
 
 		p300_markers_on =  [[111], [222],[333],[444], [555], [666]]
-		aims= range(self.stimuli_number)*3
+		aims= range(self.stimuli_number)*inputs
+		aims = aims[0:inputs]
 		while 's' not in event.getKeys(): # wait for S key to start
 			pass
-		for letter, aim in zip(range(12), aims):
+		for letter, aim in zip(range(inputs), aims):
 			self.LSL.push_sample([777]) # input of new letter
 			superseq = generate_p300_superseq(numbers = range(self.stimuli_number), repetitions = repetitions)
 

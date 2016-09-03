@@ -13,6 +13,7 @@ def view():
 	ENV = present.ENVIRONMENT()
 	ENV.Fullscreen = True
 	ENV.refresh_rate = 120
+	# ENV.stimuli_number = 4
 	ENV.build_gui(monitor = present.mymon, rgb = ENV.rgb)
 	# ENV.run_exp()
 	ENV.run_P300_exp()

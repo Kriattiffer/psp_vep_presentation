@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 from scipy import signal
 import os
 
-def slice_eeg(offsets,eeg, sample_length = 1024):
+def slice_eeg(offsets,eeg, sample_length = 300):
 		slices = [] 
 		for offset in offsets:
 			ind = np.argmax(eeg[:,0] > offset) #+8
@@ -32,14 +32,19 @@ def from_LSL():
 	eeg[:,1:] = butter_filt(eeg[:,1:], (0.1,40))
 
 	aim_list = [111]
-	# aim_list = [111,222,333,444,555,666]*12
+	aim_list = [111,222,333,444,555,666]*3
+	aim_list = [111,222,333,444,]*47
+	aim_list  = aim_list[0:47]
+
 
 	mmm = markers[:,1]==mstart
 	mmm[-1] = True
-	letter_slices = [[],[],[],[],[],[],[],[],[],[],[],[]]
+	letter_slices = [[] for a in range(len(aim_list)+1)]
 	cc = -1
 
 	for a , mrk in zip(mmm[:-1], markers):
+		print cc
+
 		if a:
 			cc +=1
 		else:		
@@ -66,10 +71,10 @@ def from_LSL():
 	aim_eeg = np.average(aim_eeg, axis = 0)
 	non_aim_eeg = np.average(non_aim_eeg, axis = 0)
 	# plt.plot(non_aim_eeg[:,1:])
-	plt.title('LSL')
+	# plt.title('LSL')
 
 	# plt.show()
-	plt.clf()
+	# plt.clf()
 	return [aim_eeg[:,1:], non_aim_eeg[:,1:]]
 
 	# for a in range(12):
@@ -132,26 +137,26 @@ mstart = 777
 
 
 
-eeg = np.genfromtxt('_data.txt')
-eeg[:,1:] = butter_filt(eeg[:,1:], (0.1,40))
-# ex = eeg[:,0]
+# eeg = np.genfromtxt('_data.txt')
+# eeg[:,1:] = butter_filt(eeg[:,1:], (0.1,40))
+# # ex = eeg[:,0]
+# # exx = ex[0:-2] - ex[1:-1]
+# # print exx
+
+# plt.plot(exx, 'o')
+# plt.show()
+# eeg = eeg[:,:2]
+# print np.shape(eeg)
+# print 'plotted'
+
+# maxeeg = eeg[eeg[:,1]>20]
+# ex = signal.argrelextrema(maxeeg[:,1], np.greater)
+# ex = ex[0]
+# # ex = maxeeg[ex][:,1]
 # exx = ex[0:-2] - ex[1:-1]
-# print exx
-
-plt.plot(exx, 'o')
-plt.show()
-eeg = eeg[:,:2]
-print np.shape(eeg)
-print 'plotted'
-
-maxeeg = eeg[eeg[:,1]>20]
-ex = signal.argrelextrema(maxeeg[:,1], np.greater)
-ex = ex[0]
-# ex = maxeeg[ex][:,1]
-exx = ex[0:-2] - ex[1:-1]
-plt.plot(exx, 'o')
-plt.show()
-# 
+# plt.plot(exx, 'o')
+# plt.show()
+# # 
 ############################################################
 # sample_length = 250
 # eeg = np.genfromtxt('_data.txt')[320:,:]
@@ -170,16 +175,29 @@ plt.show()
 # # print tmpl[:,1:]
 # # plt.show()
 
-# lsleeg = from_LSL()
+lsleeg = from_LSL()
 # # efeeg = from_easyfile()
 # # plt.plot(lsleeg[1]-efeeg[1]/1000)
 # # plt.plot(lsleeg[0]-efeeg[0]/1000)
 # # plt.plot(eeg2[:,1])
-# plt.plot(lsleeg[0])
-# plt.plot(lsleeg[1])
+fig,axs = plt.subplots(nrows =3, ncols = 3)
+channels = ['cpz', 'p3', 'p4', 'po3', 'poz', 'po4', 'o1', 'o2']
+for a in range(8):
+	# ax[a]
+	delta = lsleeg[0][:,a] - lsleeg[1][:,a]
+	axs.flatten()[a].plot(range(0, len(delta)*2, 2), delta)
+	axs.flatten()[a].plot(range(0, len(delta)*2, 2), np.zeros(np.shape(delta)))
+
+	axs.flatten()[a].set_title(channels[a])
+	# delta = lsleeg[1][:,a]
+	# axs.flatten()[a].plot(range(0, len(delta)*2, 2), delta)
+	# axs.flatten()[a].plot(range(0, len(delta)*2, 2), np.zeros(np.shape(delta)))
+
+	# plt.plot(lsleeg[1][:,a])
+plt.show()
+	# plt.clf()
 # plt.plot(tmpl[:,1:])
 
 
 # # plt.plot(efeeg[0]/1000) 
-# plt.show()
 # print np.logical_or(a==1, a==2)
