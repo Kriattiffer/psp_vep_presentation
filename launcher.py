@@ -15,13 +15,13 @@ def view():
 	ENV.refresh_rate = 120
 	# ENV.stimuli_number = 4
 	ENV.build_gui(monitor = present.mymon, rgb = ENV.rgb)
-	# ENV.run_exp()
+	# ENV.run_SSVEP_exp()
 	ENV.run_P300_exp()
 	sys.stdout = open(str(os.getpid()) + ".out", "w") #MAGIC
 
 def rec():
 	''' create stream class and start recording and plotting'''
-	Stream = record.EEG_STREAM(mapnames = mapnames, plot_fft = False, plot_to_second_screen = True)
+	Stream = record.EEG_STREAM(mapnames = mapnames, plot_fft = True, plot_to_second_screen = True)
 	Stream.plot_and_record()
 	sys.stdout = open(str(os.getpid()) + ".out", "w")
 

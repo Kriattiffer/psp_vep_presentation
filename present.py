@@ -122,7 +122,7 @@ class ENVIRONMENT():
 		core.wait(0.5)
 		sys.exit()
 
-	def run_exp(self):
+	def run_SSVEP_exp(self):
 		'''Core function of the experiment. Defines GUI behavior and marker sending'''
 		# create sequences for every cell; should be the same length!
 		# seq1, seq2, seq3, seq4 = base_mseq, numpy.roll(base_mseq, 8), numpy.roll(base_mseq, 16), numpy.roll(base_mseq, 24) # CVEP
