@@ -11,6 +11,8 @@ train = mat['train'].T
 
 EEG = train
 
+# np.savetxt('eeg1.txt',train)
+
 letter_ind_aim = np.arange(np.shape(EEG)[0])[np.logical_and(EEG[:,-2] != 0, EEG[:,-1] == 1 )] 
 letter_ind_non_aim = np.arange(np.shape(EEG)[0])[np.logical_and(EEG[:,-2] != 0, EEG[:,-1] == 0 )] 
 

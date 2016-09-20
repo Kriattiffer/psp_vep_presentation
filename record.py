@@ -142,7 +142,7 @@ class EEG_STREAM(object):
 		print 'Creating array with dimensions %s...' %str(array_shape) 
 		a = np.memmap(mmapname, dtype='float', mode='w+', shape=(array_shape))
 		# a = np.zeros(array_shape, dtype = 'float')
-		a[:,0:9] = np.NAN
+		a[:,0:number_of_channels] = np.NAN
 		print '... done'
 		return a
 
