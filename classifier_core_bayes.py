@@ -3,14 +3,16 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 sampling_rate = 256
-mat = scipy.io.loadmat(r'./training_set/s1.mat')#, variable_names  = ['test', 'train'])
+mat = scipy.io.loadmat(r'./training_set/s2.mat')#, variable_names  = ['test', 'train'])
 mat = mat[mat.keys()[0]]
 mat = mat[0,0]
 test =  mat['test'].T
 train = mat['train'].T
 
 EEG = train
+EEG = test
 
+print np.shape(EEG)
 # np.savetxt('eeg1.txt',train)
 
 letter_ind_aim = np.arange(np.shape(EEG)[0])[np.logical_and(EEG[:,-2] != 0, EEG[:,-1] == 1 )] 
@@ -22,6 +24,7 @@ for a in letter_ind_aim:
 	slices_aim.append(slice)
 
 slices_aim = np.array(slices_aim[10:20])
+print np.shape(slices_aim)
 avgaim = np.average(slices_aim, axis = 0)
 
 slices_non_aim = []
