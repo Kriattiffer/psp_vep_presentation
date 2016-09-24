@@ -19,7 +19,7 @@ naavg = np.average( naiml, axis = 1)
 # plt.plot(np.arange(np.shape(aavg)[0]), aavg)
 # plt.plot(np.arange(np.shape(aavg)[0]), naavg)
 # plt.plot(np.arange(np.shape(aavg)[0]), aavg - naavg, linewidth = 10)
-# 
+
 # plt.plot(np.arange(np.shape(aavg)[0]), naiml)
 # plt.plot(np.arange(np.shape(aavg)[0]), naavg, linewidth=10)
 # plt.show()
