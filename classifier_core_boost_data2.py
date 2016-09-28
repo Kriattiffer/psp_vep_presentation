@@ -6,7 +6,7 @@ from record import butter_filt
 sampling_rate = 256
 
 #get data
-def get_data(file = r'./training_set/s2.mat'):
+def get_data_ds2(file = r'./training_set/s2.mat'):
 	mat = scipy.io.loadmat(file)#, variable_names  = ['test', 'train'])
 	mat = mat[mat.keys()[0]]
 	mat = mat[0,0]
@@ -16,6 +16,20 @@ def get_data(file = r'./training_set/s2.mat'):
 	# EEG = train
 	EEG = test
 	return EEG
+
+def get_data_ds1():
+	mat = scipy.io.loadmat(r'./training_set/boostingp300/data.mat')
+	x = mat['x'].T
+	y = mat['y']
+	M = np.array(y, dtype='bool')
+	# oz = x[-1,]
+	# print np.shape(x.T)
+	aiml = x[M[0],:,:]
+	# aavg = np.average( aiml, axis = 1)
+	naiml = x[(np.logical_not(M))[0],:,:]
+	# naavg = np.average( naiml, axis = 1)
+	return aiml, naiml
+
 def preprocess(EEG):
 	###filter data
 	EEG[:,:-2] = butter_filt(EEG[:,:-2], [1,9], fs = sampling_rate)
@@ -58,15 +72,38 @@ def plot_ep(slices_aim, slices_non_aim):
 
 	avg_ep = [avgaim[:,1:-2], avgnonaim[:,1:-2]]
 	fig,axs = plt.subplots(nrows =3, ncols = 3)
-	channels = ['Fz', 'Cz', 'P3', 'Pz', 'P4', 'PO7', 'PO8', 'Oz']
+	channels = ['Fz', 'Cz', 'P3', 'Pz', 'P4', 'PO7', 'PO8', 'Oz', 'HRz']
 	for a in range(8):
 		delta = avg_ep[0][:,a] - avg_ep[1][:,a]
-		axs.flatten()[a].plot(range(0, len(delta)*4, 4), slices_aim[:,:,a].T)
+		axs.flatten()[a].plot(range(0, len(delta)*4, 4), slices_aim[:,:,a].T) #individual eps
 		axs.flatten()[a].plot(range(0, len(delta)*4, 4), delta, linewidth = 6)
 		axs.flatten()[a].plot(range(0, len(delta)*4, 4), np.zeros(np.shape(delta))) #baseline
 		axs.flatten()[a].set_title(channels[a])
+	# plt.suptitle = 
+	print 'averaged EP: N=%i' % np.shape(slices_aim)[0]
 	plt.show()
 
-eeg = get_data()
-sa, sna =  preprocess(eeg)
-plot_ep(sa, sna)
+def train_classifier(aims, non_aims):
+	 # reshape epocs into feature vectors
+	shp = np.shape(aims)
+	aims = aims.reshape(shp[-1]*shp[1], shp[0])
+	shp = np.shape(non_aims)
+	non_aims = non_aims.reshape(shp[-1]*shp[1], shp[0])
+	print np.shape(aims), np.shape(non_aims)
+
+	# y is list aim and non aim feature vectors
+	y = np.concatenate((np.ones(len(aims)), np.zeros(len(non_aims))),  axis=0)
+	# p is p(x_i|)
+	p = np.ones(len(aims)+ len(non_aims))*0.5
+
+	# compute gradient
+	nabla = y-p
+	print nabla
+
+if __name__ == '__main__':
+	
+	# eeg = get_data_ds2()
+	# sa, sna =  preprocess(eeg)
+	sa, sna =  get_data_ds1()
+	# plot_ep(sa, sna)
+	train_classifier(sa, sna)
