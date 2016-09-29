@@ -52,6 +52,7 @@ def preprocess(EEG):
 		slices_aim.append(slice)
 	slices_aim = np.array(slices_aim)
 
+
 	slices_non_aim = []
 	for a in letter_ind_non_aim:
 		slice = EEG[a:a+sampling_rate,:]
@@ -64,6 +65,9 @@ def preprocess(EEG):
 	pass # windsorize
 	slices_aim = slices_aim - slices_aim[:,0:1,:] # subtract 1st sample
 	slices_non_aim = slices_non_aim - slices_non_aim[:,0:1,:] # subtract 1st sample
+	print np.shape(slices_non_aim)
+	print np.shape(slices_aim)
+
 	return slices_aim, slices_non_aim
 
 
@@ -87,28 +91,29 @@ class Classifer():
 	"""docstring for Classifer"""
 	def __init__(self, aims, non_aims):
 		# self.lda=LDA()
-		# self.lda=LDA(solver = 'lsqr')
-		self.lda=LDA(solver = 'lsqr', shrinkage='auto')
-
+		self.lda=LDA(solver = 'svd')
+		# self.lda=LDA(solver = 'lsqr', shrinkage='auto')
 		self.aims, self.non_aims = aims, non_aims
 
 	def prepare_epocs(self, aims, non_aims):
+		aims = aims[:,:,5:6]
+		non_aims = non_aims[:,:,5:6]
+
 		shp = np.shape(aims)
 		aims = aims.reshape(shp[-1]*shp[1], shp[0])
+		
 		shp = np.shape(non_aims)
-		print np.shape(aims.sum(axis=1))
-		print np.shape(aims)
-
-		# non_aims.sum(axis=1)
 		non_aims = non_aims.reshape(shp[-1]*shp[1], shp[0])
+		
 		# reshape epocs into lists of feature vectors
 		self.x = np.concatenate((aims, non_aims), axis=1).T
+		print np.shape(self.x)
 		self.y = np.concatenate((np.ones(np.shape(aims)[1]), np.zeros(np.shape(non_aims)[1])),  axis=0)
 		self.x, self.y = self.average_eps(self.x, self.y)
 		# self.x_train,self.y_train = self.subset(self.x,self.y)
 
 	def average_eps(self,x, y):
-		averaging_bin = 4
+		averaging_bin = 20
 		x1 = x[y==1]
 		x0 = x[y==0]
 		shp = np.shape(x1)
@@ -153,6 +158,8 @@ class Classifer():
 			else:
 				# print 'False', self.y[ind]
 				if self.y[ind] == 1:
+					plt.plot(self.x[ind])
+					plt.show()
 					fa1 +=1
 				elif self.y[ind] == 0:
 					fa0 +=1
@@ -167,10 +174,12 @@ if __name__ == '__main__':
 	eeg = get_data_ds2(set = 'test')
 	sa, sna =  preprocess(eeg)
 	# sa, sna =  get_data_ds1()
-	# plot_ep(sa, sna)
 	print 'building classifier \n'
 	clf = Classifer(sa, sna)
+
 	clf.prepare_epocs(clf.aims, clf.non_aims)
+	plot_ep(clf.aims, clf.non_aims)
+	
 	# plot_ep(clf.non_aims, clf.aims)
 
 	clf.train_classifier()
@@ -178,7 +187,7 @@ if __name__ == '__main__':
 	eeg = get_data_ds2(set = 'train')
 	clf.aims, clf.non_aims = preprocess(eeg)
 
-	plot_ep(clf.non_aims, clf.aims)
+	# plot_ep(clf.non_aims, clf.aims)
 	clf.prepare_epocs(clf.aims, clf.non_aims)
 
 	# plt.plot(clf.x[clf.y==1,:])
