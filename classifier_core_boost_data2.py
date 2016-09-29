@@ -2,7 +2,7 @@ import scipy.io
 import numpy as np
 from matplotlib import pyplot as plt
 from record import butter_filt
-from sklearn.lda import LDA
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 import random
 
 sampling_rate = 256
@@ -33,6 +33,7 @@ def get_data_ds1():
 	return aiml, naiml
 
 def preprocess(EEG):
+	downsample_div = 4
 	###filter data
 	EEG[:,:-2] = butter_filt(EEG[:,:-2], [1,9], fs = sampling_rate)
 	
@@ -58,18 +59,11 @@ def preprocess(EEG):
 	slices_non_aim = np.array(slices_non_aim)
 
 	### postprocess epochs
-	slices_aim = slices_aim[:,::2,:] #downsample to 64 hz 
-	slices_non_aim = slices_non_aim[:,::2,:] #downsample to 64 hz 
+	slices_aim = slices_aim[:,::downsample_div,:] #downsample to 64 hz 
+	slices_non_aim = slices_non_aim[:,::downsample_div,:] #downsample to 64 hz 
 	pass # windsorize
 	slices_aim = slices_aim - slices_aim[:,0:1,:] # subtract 1st sample
 	slices_non_aim = slices_non_aim - slices_non_aim[:,0:1,:] # subtract 1st sample
-	print np.shape(slices_aim)
-	print np.shape(slices_non_aim)
-	sss = range(2625)
-	random.shuffle(sss)
-	slices_non_aim = slices_non_aim[sss[0:75],:,:]
-	print np.shape(slices_non_aim)
-
 	return slices_aim, slices_non_aim
 
 
@@ -86,7 +80,6 @@ def plot_ep(slices_aim, slices_non_aim):
 		axs.flatten()[a].plot(range(0, len(delta)*4, 4), delta, linewidth = 6)
 		axs.flatten()[a].plot(range(0, len(delta)*4, 4), np.zeros(np.shape(delta))) #baseline
 		axs.flatten()[a].set_title(channels[a])
-	# plt.suptitle = 
 	print 'averaged EP: N=%i' % np.shape(slices_aim)[0]
 	plt.show()
 
@@ -94,44 +87,76 @@ class Classifer():
 	"""docstring for Classifer"""
 	def __init__(self, aims, non_aims):
 		# self.lda=LDA()
-		self.lda=LDA(solver = 'lsqr')
+		# self.lda=LDA(solver = 'lsqr')
+		self.lda=LDA(solver = 'lsqr', shrinkage='auto')
+
 		self.aims, self.non_aims = aims, non_aims
 
 	def prepare_epocs(self, aims, non_aims):
 		shp = np.shape(aims)
 		aims = aims.reshape(shp[-1]*shp[1], shp[0])
 		shp = np.shape(non_aims)
+		print np.shape(aims.sum(axis=1))
+		print np.shape(aims)
+
+		# non_aims.sum(axis=1)
 		non_aims = non_aims.reshape(shp[-1]*shp[1], shp[0])
 		# reshape epocs into lists of feature vectors
 		self.x = np.concatenate((aims, non_aims), axis=1).T
 		self.y = np.concatenate((np.ones(np.shape(aims)[1]), np.zeros(np.shape(non_aims)[1])),  axis=0)
+		self.x, self.y = self.average_eps(self.x, self.y)
 		# self.x_train,self.y_train = self.subset(self.x,self.y)
 
-	def subset(self, x,y):
-		self.sample_ind = range(len(self.y))
-		random.shuffle(self.sample_ind)
-		return self.x[self.sample_ind[0:200]], self.y[self.sample_ind[0:200]]
+	def average_eps(self,x, y):
+		averaging_bin = 4
+		x1 = x[y==1]
+		x0 = x[y==0]
+		shp = np.shape(x1)
+		# print shp
+		dlt = shp[0]%averaging_bin
+		if dlt !=0:
+			x1 = x1[:-dlt, :]
+		x1 = x1.reshape((averaging_bin, shp[0]/averaging_bin, shp[-1]))
+		x1 = np.average(x1, axis = 0)
+
+		shp = np.shape(x0)
+		# print shp
+
+		dlt = shp[0]%averaging_bin
+		if dlt !=0:
+			x0 = x0[:-dlt, :]
+		x0 = x0.reshape((averaging_bin, shp[0]/averaging_bin, shp[-1]))
+		x0 = np.average(x0, axis = 0)
+		x = np.concatenate((x1, x0), axis = 0)
+		y = np.concatenate((np.ones(np.shape(x1)[0]), np.zeros(np.shape(x0)[0])),  axis=0)
+		return x, y
 
 	def train_classifier(self):
 		self.lda.fit(self.x, self.y)
 	
 	def validate(self):
+		print 'start crossvalidation \n'
 		tr1 = 0
 		tr0 = 0
 		fa1 = 0
 		fa0 = 0
+
 		for ind in range(len(self.y)):
-			if self.lda.predict([self.x[ind]])[0] == self.y[ind]:
+			EP = [self.x[ind]]
+			# print np.shape(EP)
+			if self.lda.predict(EP)[0] == self.y[ind]:
+				# print 'TRUE', self.y[ind]
 				if self.y[ind] == 1:
 					tr1 +=1
-				if self.y[ind] == 1:
+				elif self.y[ind] == 0:
 					tr0 +=1
 			else:
+				# print 'False', self.y[ind]
 				if self.y[ind] == 1:
 					fa1 +=1
-				if self.y[ind] == 1:
+				elif self.y[ind] == 0:
 					fa0 +=1
-		print (tr1+tr0)/(float(fa1+fa0) + (tr1+tr0))
+		print tr1, tr0, fa1, fa0, (tr1+tr0)/(float(fa1+fa0) + float(tr1+tr0)), tr0/float(tr0 + fa0), tr1/float(tr1 + fa1)
 
 	def classify(self):
 		pass
@@ -143,12 +168,22 @@ if __name__ == '__main__':
 	sa, sna =  preprocess(eeg)
 	# sa, sna =  get_data_ds1()
 	# plot_ep(sa, sna)
+	print 'building classifier \n'
 	clf = Classifer(sa, sna)
 	clf.prepare_epocs(clf.aims, clf.non_aims)
+	# plot_ep(clf.non_aims, clf.aims)
+
 	clf.train_classifier()
 
 	eeg = get_data_ds2(set = 'train')
 	clf.aims, clf.non_aims = preprocess(eeg)
-	clf.prepare_epocs(clf.non_aims, clf.aims)
 
+	plot_ep(clf.non_aims, clf.aims)
+	clf.prepare_epocs(clf.aims, clf.non_aims)
+
+	# plt.plot(clf.x[clf.y==1,:])
+	# plt.show()
+	# plt.plot(clf.x[clf.y==1])
+	# plt.show()
+	
 	clf.validate()
