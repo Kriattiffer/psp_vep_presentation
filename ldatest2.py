@@ -1,3 +1,4 @@
+### DO NOT TOUCH ###
 import numpy as np
 import scipy.io
 from record import butter_filt
@@ -6,8 +7,8 @@ from matplotlib import pyplot as plt
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 
 sampling_rate = 256
-downsample_div = 4
-averaging_bin = 1
+downsample_div = 8
+averaging_bin = 4
 
 
 def plot_ep(slices_aim, slices_non_aim):
@@ -29,7 +30,7 @@ def plot_ep(slices_aim, slices_non_aim):
 	print 'averaged EP: N=%i' % np.shape(slices_aim)[0]
 	plt.show()
 
-def get_data_ds2(file = r'./training_set/s2.mat', set = 'train'):
+def get_data_ds2(file = r'./training_set/s3.mat', set = 'train'):
 	mat = scipy.io.loadmat(file)#, variable_names  = ['test', 'train'])
 	mat = mat[mat.keys()[0]]
 	mat = mat[0,0]
@@ -79,36 +80,36 @@ def preprocess(EEG):
 	return slices_aim, slices_non_aim
 
 def average_eps(x, y):
-	x1 = x[y==1]
-	x0 = x[y==0]
-	shp = np.shape(x1)
-	dlt = shp[0]%averaging_bin
+	print np.shape(x)
+	print 
+	xa = x[np.array(y)==1]
+	xn = x[np.array(y)==0]
+	shpa = np.shape(xa)
+	print shpa
+	dlt = shpa[0]%averaging_bin
 	if dlt !=0:
-		x1 = x1[:-dlt, :]
-	x1 = x1.reshape((averaging_bin, shp[0]/averaging_bin, shp[-1]))
-	x1 = np.average(x1, axis = 0)
+		xa = xa[:-dlt, :] # trim last eps if don't fit
+	xa= xa.reshape((averaging_bin, shpa[0]/averaging_bin, shpa[-1]))
+	xa = np.average(xa, axis = 0)
 
-	shp = np.shape(x0)
+	shp = np.shape(xn)
 	dlt = shp[0]%averaging_bin
 	if dlt !=0:
-		x0 = x0[:-dlt, :]
+		xn = xn[:-dlt, :]
 	x0 = x0.reshape((averaging_bin, shp[0]/averaging_bin, shp[-1]))
-	x0 = np.average(x0, axis = 0)
-	x = np.concatenate((x1, x0), axis = 0)
-	y = np.concatenate((np.ones(np.shape(x1)[0], dtype = 'int'), np.zeros(np.shape(x0)[0], dtype = 'int')),  axis=0)
+	x0 = np.average(xn, axis = 0)
+	x = np.concatenate((xa, xn), axis = 0)
+	y = [1 if a < shpa[0] else 0 for a in range(np.shape(x)[0]) ]
 	return x, y
 
 def prepare_epocs(aims, non_aims):
-	shp= np.shape(aims)
-	aim_feature_vectors = aims.reshape(shp[0], shp[1]*shp[2])
-	shp= np.shape(non_aims)
-	non_aim_feature_vectors = non_aims.reshape(shp[0], shp[1]*shp[2])
-	print np.shape(aim_feature_vectors)
-	print np.shape(non_aim_feature_vectors)
-
-	# x, y = average_eps(x, y)
-	print 'sdfdf'
-	# print np.shape(x)
+	shpa= np.shape(aims)
+	aim_feature_vectors = aims.reshape(shpa[0], shpa[1]*shpa[2])
+	shpn= np.shape(non_aims)
+	non_aim_feature_vectors = non_aims.reshape(shpn[0], shpn[1]*shpn[2])
+	x = np.concatenate((aim_feature_vectors, non_aim_feature_vectors), axis = 0)
+	y = [1 if a < shpa[0] else 0 for a in range(np.shape(x)[0]) ]
+	x, y = average_eps(x, y)
 	return x, y
 
 
@@ -130,40 +131,20 @@ if __name__ == '__main__':
 	# a, na = np.ones(np.shape(a))+, np.zeros(np.shape(na))
 	# a, na   = np.random.randint(0,100, size = np.shape(a))/1000.0,   np.random.randint(100,200, size = np.shape(na))/1000.0
 
-	data2, y2 = prepare_epocs(a, na)
+	data2, y2 = prepare_epocs(a,na)
+	# plot_ep(a, na)
 
 
 	# print np.shape(data)
-	# print np.shape(data2)
+	print np.shape(data2)
 	# print np.shape(y)
 
 	lda=LDA(solver = 'lsqr', shrinkage='auto')
 	lda.fit(data, y)
-	# print lda
-	# print  
-	print sum(lda.predict(data2)[y2 ==1] == 1)/float(sum(y2[y2 ==1]))
-	print y
-	print np.shape(data2)
 	print lda.predict(data2)
-
-	plot_ep(a, na)
-	a = np.average(data2[y2==1], axis = 0)
-	na = np.average(data2[y2==0], axis = 0)
-
-	a = a.reshape(np.shape(a)[0]/11, 11)
-	na = na.reshape(np.shape(na)[0]/11, 11)
-	print np.shape(a)
-	a = np.repeat(a[np.newaxis,:], 75, axis = 0)
-	na = np.repeat(na[np.newaxis,:], 75, axis = 0)
-	plot_ep(a, na)
-	print np.shape(a)
-
-	# plt.plot(a - na)
-
-	# plot_ep(a,na)
-	# plt.plot(a)
-	# plt.plot(na)
-	# plt.plot(a - na, linewidth = 6)
-
-	plt.show()
-	# print
+	# print  
+	print sum(lda.predict(data2)[np.array(y2) ==1] == 1)/float(sum(np.array(y2)[np.array(y2) ==1]))
+	print sum(lda.predict(data2))
+	# print y
+	# print np.shape(data2)
+	# print lda.predict(data2)
