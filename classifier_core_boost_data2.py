@@ -96,29 +96,23 @@ class Classifer():
 		shp = np.shape(aims)
 		aims = aims.reshape(shp[-1]*shp[1], shp[0])
 		shp = np.shape(non_aims)
+		print np.shape(aims.sum(axis=1))
+		print np.shape(aims)
 
+		# non_aims.sum(axis=1)
 		non_aims = non_aims.reshape(shp[-1]*shp[1], shp[0])
 		# reshape epocs into lists of feature vectors
 		self.x = np.concatenate((aims, non_aims), axis=1).T
 		self.y = np.concatenate((np.ones(np.shape(aims)[1]), np.zeros(np.shape(non_aims)[1])),  axis=0)
 		self.x, self.y = self.average_eps(self.x, self.y)
-
-	def subset(self):
-		# equalize number of aims and nonaims
-		x,y = self.x, self.y
-		n_1 = int(np.sum(y))
-		x_1 = x[y==1]
-		x_0_ind = np.random.choice(np.shape(x[y==0])[0], n_1, replace = False)
-		x_0 = x[y==0][x_0_ind,:]
-		self.x = np.concatenate((x_1, x_0), axis = 0)
-		# print np.shape(self.x)
-		self.y = np.concatenate((np.ones(n_1), np.zeros(n_1)),  axis=0)
+		# self.x_train,self.y_train = self.subset(self.x,self.y)
 
 	def average_eps(self,x, y):
-		averaging_bin = 5
+		averaging_bin = 4
 		x1 = x[y==1]
 		x0 = x[y==0]
 		shp = np.shape(x1)
+		# print shp
 		dlt = shp[0]%averaging_bin
 		if dlt !=0:
 			x1 = x1[:-dlt, :]
@@ -126,19 +120,18 @@ class Classifer():
 		x1 = np.average(x1, axis = 0)
 
 		shp = np.shape(x0)
+		# print shp
+
 		dlt = shp[0]%averaging_bin
 		if dlt !=0:
 			x0 = x0[:-dlt, :]
 		x0 = x0.reshape((averaging_bin, shp[0]/averaging_bin, shp[-1]))
 		x0 = np.average(x0, axis = 0)
 		x = np.concatenate((x1, x0), axis = 0)
-		y = np.concatenate((np.ones(np.shape(x1)[0], dtype = 'int'), np.zeros(np.shape(x0)[0], dtype = 'int')),  axis=0)
-		print y
+		y = np.concatenate((np.ones(np.shape(x1)[0]), np.zeros(np.shape(x0)[0])),  axis=0)
 		return x, y
 
 	def train_classifier(self):
-		print np.shape(self.x)
-		print self.x[1]
 		self.lda.fit(self.x, self.y)
 	
 	def validate(self):
@@ -147,48 +140,50 @@ class Classifer():
 		tr0 = 0
 		fa1 = 0
 		fa0 = 0
-		print self.x[16], self.y[16]
+
 		for ind in range(len(self.y)):
 			EP = [self.x[ind]]
-			if self.classify(EP) == self.y[ind]:
+			# print np.shape(EP)
+			if self.lda.predict(EP)[0] == self.y[ind]:
+				# print 'TRUE', self.y[ind]
 				if self.y[ind] == 1:
 					tr1 +=1
 				elif self.y[ind] == 0:
 					tr0 +=1
 			else:
+				# print 'False', self.y[ind]
 				if self.y[ind] == 1:
 					fa1 +=1
 				elif self.y[ind] == 0:
 					fa0 +=1
 		print tr1, tr0, fa1, fa0, (tr1+tr0)/(float(fa1+fa0) + float(tr1+tr0)), tr0/float(tr0 + fa0), tr1/float(tr1 + fa1)
 
-	def classify(self, EP):
-		return self.lda.predict(EP)[0]
+	def classify(self):
+		pass
 
 
 if __name__ == '__main__':
 	
 	eeg = get_data_ds2(set = 'test')
 	sa, sna =  preprocess(eeg)
-	sa, sna = np.ones(np.shape(sa)), np.zeros(np.shape(sna))
-
+	# sa, sna =  get_data_ds1()
+	# plot_ep(sa, sna)
 	print 'building classifier \n'
 	clf = Classifer(sa, sna)
 	clf.prepare_epocs(clf.aims, clf.non_aims)
-	clf.subset()
-	# print clf.x, clf.y
-	# print clf.aims, clf.non_aims
+	# plot_ep(clf.non_aims, clf.aims)
 
 	clf.train_classifier()
 
 	eeg = get_data_ds2(set = 'train')
 	clf.aims, clf.non_aims = preprocess(eeg)
-	clf.aims, clf.non_aims = np.ones(np.shape(clf.aims)), np.zeros(np.shape(clf.non_aims))
 
-
+	plot_ep(clf.non_aims, clf.aims)
 	clf.prepare_epocs(clf.aims, clf.non_aims)
-	# clf.subset()
-	
-	# print clf.x, clf.y
+
+	# plt.plot(clf.x[clf.y==1,:])
+	# plt.show()
+	# plt.plot(clf.x[clf.y==1])
+	# plt.show()
 	
 	clf.validate()
