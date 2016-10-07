@@ -6,7 +6,7 @@ from record import butter_filt
 from matplotlib import pyplot as plt
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 
-sampling_rate = 256
+sampling_rate = 500
 downsample_div = 4
 averaging_bin = 4
 
@@ -28,6 +28,18 @@ def plot_ep(slices_aim, slices_non_aim, number_of_channels = 8):
 		axs.flatten()[a].set_title(channels[a])
 	print 'averaged EP: N=%i' % np.shape(slices_aim)[0]
 	plt.show()
+
+def slice_eeg(offsets,eeg, sample_length = 300):
+	slices = [] 
+	for offset in offsets:
+		ind = np.argmax(eeg[:,0] > offset) #+8
+		slice = eeg[ind:ind+sample_length]
+		if np.shape(slice)[0]<sample_length:
+			pass
+		else:
+			slices.append(slice)
+	return np.array(slices)
+
 
 def get_data_ds2(file = r'./training_set/s3.mat', set = 'train'):
 	'''Guger P300 BCI dataset'''
@@ -65,6 +77,47 @@ def get_data_ds3(set):
 	non_aims = non_aims.reshape((np.shape(non_aims)[2], np.shape(non_aims)[0], np.shape(non_aims)[1]))
 	print np.shape(aims)
 	return aims, non_aims
+
+def get_data_ds4_exp(mode = 'learn'):
+	'''TDCS experiment data'''
+	mend = 999
+	mstart = 777
+	markers = np.genfromtxt('./_data/_markers.txt')
+	eeg = np.genfromtxt('./_data/_data.txt')
+	eeg[:,1:] = butter_filt(eeg[:,1:], (0.1,40))
+
+	aim_list = [111,222,333,444,]*47
+	aim_list  = aim_list[0:47]
+	print aim_list
+	mmm = markers[:,1]==mstart
+	mmm[-1] = True
+	letter_slices = [[] for a in range(len(aim_list)+1)]
+	
+	cc = -1
+	for a , mrk in zip(mmm[:-1], markers):
+		if a:
+			cc +=1
+		else:		
+			letter_slices[cc].append(mrk)
+
+	aim_eeg = []
+	non_aim_eeg = []
+
+	for aim, letter  in zip(aim_list, letter_slices):
+		letter = np.array(letter)
+		aim_offsets =  letter[letter[:,1] == aim][:,0]
+		non_aim_offsets = letter[letter[:,1] != aim][:,0]
+		
+		aim_slices = slice_eeg(aim_offsets, eeg)
+		non_aim_slices = slice_eeg(non_aim_offsets, eeg)
+
+		aim_eeg.append(aim_slices)
+		non_aim_eeg.append(non_aim_slices)
+	aim_eeg = np.array(aim_eeg)
+	non_aim_eeg = np.array(non_aim_eeg)
+	aim_eeg = aim_eeg.reshape()
+	print np.shape(aim_eeg)
+	return aim_eeg[:,1:], non_aim_eeg[:,1:]
 
 def preprocess(EEG):
 	''' Filter EEG; cut in into aim and non-aim epocs '''
@@ -132,18 +185,23 @@ def prepare_epocs(aims, non_aims, session= 'train'):
 
 if __name__ == '__main__':
 	
-	a, na = preprocess(get_data_ds2(set = 'train'))
+	# a, na = preprocess(get_data_ds1(set = 'train'))
+	a, na  = get_data_ds4_exp(mode = 'learn')
+	print np.shape(a)
+	print np.shape(na)
 	# a, na  = get_data_ds3(set = 'train')
 	# a, na   = np.random.randint(0,100, size = np.shape(a))/1000.0,   np.random.randint(100,200, size = np.shape(na))/1000.0
 	data, y = prepare_epocs(a, na)
 	plot_ep(a, na)
 
 	###########
-	a, na = preprocess(get_data_ds2(set = 'test'))
+	# a, na = preprocess(get_data_ds1(set = 'test'))
+	a, na  = get_data_ds4_exp(set='test')
+
 	# a, na = get_data_ds3(set = 'test')
 	# a, na   = np.random.randint(0,100, size = np.shape(a))/1000.0,   np.random.randint(100,200, size = np.shape(na))/1000.0
 	data2, y2 = prepare_epocs(a,na)
-	# plot_ep(a, na)
+	plot_ep(a, na)
 
 	lda=LDA(solver = 'lsqr', shrinkage='auto')
 	lda.fit(data, y)

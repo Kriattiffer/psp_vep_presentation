@@ -22,9 +22,9 @@ def slice_eeg(offsets,eeg, sample_length = 300):
 
 
 def from_LSL():
-	markers = np.genfromtxt('_markers.txt')
+	markers = np.genfromtxt('./_data/_markers.txt')
 
-	eeg = np.genfromtxt('_data.txt')
+	eeg = np.genfromtxt('./_data/_data.txt')
 
 	# plt.plot(eeg[:,1])
 	print np.shape(eeg)
