@@ -1,18 +1,20 @@
-import multiprocessing, sys # os???
-# import os
+import multiprocessing, sys, os, time
 from tempfile import mkdtemp
 import numpy as np
 import present
 import record
 import classify
 
+
 mapnames = {'eeg':'eegdata.mmap', 'markers':'markers.mmap'}
+top_exp_length = 60
+number_of_channels = 9
 # print mkdtemp()
 def view():
 	'''create stimulation window'''
 	ENV = present.ENVIRONMENT()
 	ENV.Fullscreen = True
-	ENV.refresh_rate = 120
+	ENV.refresh_rate = 60
 	# ENV.stimuli_number = 4
 	ENV.build_gui(monitor = present.mymon, rgb = ENV.rgb)
 	# ENV.run_SSVEP_exp()
@@ -21,25 +23,30 @@ def view():
 
 def rec():
 	''' create stream class and start recording and plotting'''
-	Stream = record.EEG_STREAM(mapnames = mapnames, plot_fft = True, plot_to_second_screen = True)
+	Stream = record.EEG_STREAM(mapnames = mapnames, plot_fft = False, plot_to_second_screen = True,
+								top_exp_length = top_exp_length, number_of_channels  = number_of_channels)
 	Stream.plot_and_record()
 	sys.stdout = open(str(os.getpid()) + ".out", "w")
 
 def class_():
-	Classifier = classify.Classifier(mapnames = mapnames)
+	Classifier = classify.Classifier(mapnames = mapnames, online = True,
+									top_exp_length = top_exp_length, number_of_channels = number_of_channels)
+	Classifier.mainloop()
 	sys.stdout = open(str(os.getpid()) + ".out", "w")
 
 
 if __name__ == '__main__':
 	print 'startig GUI...'
-	p1 = multiprocessing.Process(target=view)
+	pgui = multiprocessing.Process(target=view)
 	print 'startig backend...'
-	p2 = multiprocessing.Process(target=rec)
-	# print 'startig classifier...'
-	# p2 = multiprocessing.Process(target=class_)
+	prec = multiprocessing.Process(target=rec)
+	print 'startig classifier...'
+	pclass = multiprocessing.Process(target=class_)
 
-	p2.start()
-	p1.start()
+	prec.start()
+	pgui.start()
+	time.sleep(4)
+	pclass.start()
 
 # example of usage for mmap 
 # whait while object is created!

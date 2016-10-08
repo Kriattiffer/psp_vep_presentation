@@ -65,17 +65,18 @@ class FFT_PLOT():
 		self.fig.canvas.start_event_loop(0.001) #0.1 ms seems enough
 
 
-
 class EEG_STREAM(object):
 	""" class for EEG\markers streaming, plotting and recording. """
-	def __init__(self,  mapnames = {'eeg':'eegdata.mmap', 'markers':'markers.mmap'}, sample_length = 1000,StreamEeg = True, StreamMarkers = True, plot_fft = True, plot_to_second_screen = True):
+	def __init__(self,  mapnames = {'eeg':'eegdata.mmap', 'markers':'markers.mmap'}, 
+				sample_length = 1000, top_exp_length = 60, number_of_channels = 9,
+	 			StreamEeg = True, StreamMarkers = True, plot_fft = True, plot_to_second_screen = True):
 		''' create objects for later use'''
 		self.StreamEeg, self.StreamMarkers = StreamEeg, StreamMarkers
 		self.plot_fft = plot_fft
 		self.stop = False  # set EEG_STREAM.stop to 1 to flush arrays to disc. This variable is also used to choose the exact time to stop record.
 		self.ie, self.im =  self.create_streams()
 		
-		self.EEG_ARRAY = self.create_array(mmapname=mapnames['eeg'])
+		self.EEG_ARRAY = self.create_array(mmapname=mapnames['eeg'], top_exp_length = top_exp_length, number_of_channels = number_of_channels)
 		self.MARKER_ARRAY = self.create_array(mmapname=mapnames['markers'], top_exp_length = 1, number_of_channels = 2)
 		self.line_counter = 0
 		self.line_counter_mark = 0
@@ -158,7 +159,6 @@ class EEG_STREAM(object):
 	
 		while 1: #self.stop != True:	
 			# pull chunks if Steam_eeg and stream_markess are True
-			
 			# if self.StreamEeg == True:
 			try:
 				EEG, timestamp_eeg = self.ie.pull_chunk()
@@ -171,7 +171,6 @@ class EEG_STREAM(object):
 			except :
 				marker, timestamp_mark = [],[]
 			
-
 			if timestamp_mark:
 				self.line_counter_mark += len(timestamp_mark)
 				self.fill_array(self.MARKER_ARRAY, self.line_counter_mark, marker[0], timestamp_mark, datatype = 'MARKER')				
@@ -196,7 +195,6 @@ class EEG_STREAM(object):
 						print '\n...data saved.\n Goodbye.\n'
 						sys.exit()
 
-	
 
 def butter_filt(data, cutoff_array, fs = 500, order=4):
     nyq = 0.5 * fs
@@ -204,7 +202,6 @@ def butter_filt(data, cutoff_array, fs = 500, order=4):
     b, a = signal.butter(order, normal_cutoff, btype = 'bandpass', analog=False)
     data = signal.filtfilt(b, a, data, axis = 0)
     return data
-
 
 def compute_fft(EEG_ARRAY,offset, sample_length = 1000):
 	''' computes fourier transform from slice of EEG_ARRAY. slice is determined by current position and length of the sample to analyze.

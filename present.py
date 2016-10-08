@@ -2,6 +2,7 @@ import os, sys, time, socket, random, datetime
 from psychopy import visual, core, event, monitors
 from pylsl import StreamInfo, StreamOutlet
 import numpy as np
+from psychopy.tools.monitorunittools import posToPix
 
 
 mymon = monitors.Monitor('Eizo', distance=48, width = 52.5)
@@ -18,7 +19,7 @@ base_mseq = np.array(base_mseq, dtype = int)
 
 class ENVIRONMENT():
 	""" class for visual stimulation during the experiment """
-	def __init__(self):
+	def __init__(self, stimuli_number = 6):
 		self.rgb = '#868686'
 		self.stimcolor_p300 = [[self.rgb,self.rgb,self.rgb,self.rgb,self.rgb,self.rgb],['red', 'green', 'blue', 'pink', 'yellow', 'purple']]
 		self.stimcolor = ['white', 'white', 'white', 'white']
@@ -27,7 +28,7 @@ class ENVIRONMENT():
 
 		self. time_4_one_letter = 6 #steadystate
 
-		self.stimuli_number = 6		
+		self.stimuli_number = stimuli_number		
 		self.number_of_inputs = 12
 		self.refresh_rate = 120
 		self.LSL = create_lsl_outlet() # create outlet for sync with NIC
@@ -53,7 +54,7 @@ class ENVIRONMENT():
 
 		# Create window
 		self.win = visual.Window(fullscr = self.Fullscreen, 
-							rgb = rgb,
+							rgb = '#868686',
 							size = self.window_size,	
 							monitor = monitor
 							)
@@ -63,9 +64,11 @@ class ENVIRONMENT():
 		self.cell2 = create_circle(1)
 		self.cell3 = create_circle(2)
 		self.cell4 = create_circle(3)
-		self.cell5 = create_circle(4)
-		self.cell6 = create_circle(5)
-
+		if self.stimuli_number == 6:
+			self.cell5 = create_circle(4)
+			self.cell6 = create_circle(5)
+		else:
+			self.cell5, self.cell6 = False, False
 		# Create fixation cross
 		self.fixation = visual.ShapeStim(self.win,  							
 								vertices=((0, -1*fix_size), (0, fix_size), (0,0), 
@@ -79,13 +82,15 @@ class ENVIRONMENT():
 
 		# position circles over board. units are taken from the create_circle function
 
-		self.cell1.pos = [0, 15]
-		self.cell2.pos = [15, 0]
-		self.cell3.pos = [0, -15]
-		self.cell4.pos = [-15, 0]
+		self.cell1.pos = [0, 14]
+		self.cell2.pos = [14, 8]
+		self.cell3.pos = [0, -14]
+		self.cell4.pos = [-14, 8]
 		if self.stimuli_number == 6:
-			self.cell5.pos = [-15, -8]
-			self.cell6.pos = [8, 15]
+			self.cell5.pos = [-14, -8]
+			self.cell6.pos = [14, -8]
+
+
 
 
 
@@ -164,7 +169,7 @@ class ENVIRONMENT():
 		self.exit_()
 
 
-	def run_P300_exp(self, stim_duration_FRAMES = 6, ISI_FRAMES = 18, repetitions =  10, inputs = 60):
+	def run_P300_exp(self, stim_duration_FRAMES = 3, ISI_FRAMES = 9, repetitions =  10, inputs = 60):
 		'P300 expreiment. Stimuli duration and interstimuli interval should be supplied as number of frames.'
 		seq = [1]*stim_duration_FRAMES + [0]*ISI_FRAMES
 
@@ -172,7 +177,7 @@ class ENVIRONMENT():
 		self.cells = [self.cell1,self.cell2,self.cell3,self.cell4, self.cell5, self.cell6][0:self.stimuli_number]
 
 
-		p300_markers_on =  [[111], [222],[333],[444], [555], [666]]
+		p300_markers_on =  [[11], [22],[33],[44], [55], [66]]
 		aims= range(self.stimuli_number)*inputs
 		aims = aims[0:inputs]
 		while 's' not in event.getKeys(): # wait for S key to start
@@ -222,6 +227,8 @@ class ENVIRONMENT():
 				tt = time.time()
 								
 			print 'next letter'
+			self.LSL.push_sample([888]) # end of the trial
+
 		self.exit_()
 
 def generate_p300_superseq(numbers =[0,1,2,3], repetitions = 10):
