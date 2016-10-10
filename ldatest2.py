@@ -155,8 +155,11 @@ def subtrfirst(slices):
 	return slices
 
 def average_epocs(slices):
+	print '228'
 	'''Average aim and non_aim epocs according to given averaging_bin. '''
 	shp = np.shape(slices)
+	print shp
+
 	slices = slices[shp[0]%averaging_bin:,:,:]
 	slices = slices.reshape((shp[0]/averaging_bin, averaging_bin, shp[1], shp[2]))
 	slices = np.average(slices, axis = 1)
@@ -180,25 +183,24 @@ def prepare_epocs(aims, non_aims, session= 'train'):
 		return x
 	else:
 		y = [1 if a < shpa[0] else 0 for a in range(np.shape(x)[0]) ]
+		print np.shape(x), y
 		return x, y
 
 
 if __name__ == '__main__':
 	
 	# a, na = preprocess(get_data_ds1(set = 'train'))
-	a, na  = get_data_ds4_exp(mode = 'learn')
-	print np.shape(a)
-	print np.shape(na)
-	# a, na  = get_data_ds3(set = 'train')
+	# a, na  = get_data_ds4_exp(mode = 'learn')
+	a, na  = get_data_ds3(set = 'train')
 	# a, na   = np.random.randint(0,100, size = np.shape(a))/1000.0,   np.random.randint(100,200, size = np.shape(na))/1000.0
 	data, y = prepare_epocs(a, na)
 	plot_ep(a, na)
 
 	###########
 	# a, na = preprocess(get_data_ds1(set = 'test'))
-	a, na  = get_data_ds4_exp(set='test')
+	# a, na  = get_data_ds4_exp(set='test')
 
-	# a, na = get_data_ds3(set = 'test')
+	a, na = get_data_ds3(set = 'test')
 	# a, na   = np.random.randint(0,100, size = np.shape(a))/1000.0,   np.random.randint(100,200, size = np.shape(na))/1000.0
 	data2, y2 = prepare_epocs(a,na)
 	plot_ep(a, na)

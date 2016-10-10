@@ -169,20 +169,27 @@ class ENVIRONMENT():
 		self.exit_()
 
 
-	def run_P300_exp(self, stim_duration_FRAMES = 3, ISI_FRAMES = 9, repetitions =  10, inputs = 60):
+	def run_P300_exp(self, stim_duration_FRAMES = 3, ISI_FRAMES = 9, repetitions =  10, waitforS=True, LEARN = True):
 		'P300 expreiment. Stimuli duration and interstimuli interval should be supplied as number of frames.'
+		cycle_ms = (stim_duration_FRAMES +ISI_FRAMES)*1000.0/self.refresh_rate
+		print 'P300 cycle is %.2f ms' % cycle_ms
 		seq = [1]*stim_duration_FRAMES + [0]*ISI_FRAMES
 
 		# self.cells = [self.cell1,self.cell2,self.cell3,self.cell4]
 		self.cells = [self.cell1,self.cell2,self.cell3,self.cell4, self.cell5, self.cell6][0:self.stimuli_number]
 
-
 		p300_markers_on =  [[11], [22],[33],[44], [55], [66]]
-		aims= range(self.stimuli_number)*inputs
-		aims = aims[0:inputs]
-		while 's' not in event.getKeys(): # wait for S key to start
-			pass
-		for letter, aim in zip(range(inputs), aims):
+		if LEARN == True:
+			aims = [int(a)-1 for a in np.genfromtxt('aims_learn.txt')]
+			print aims
+		elif LEARN == False:
+			aims = [int(a) -1 for a in np.genfromtxt('aims_play.txt')]
+			print aims
+
+		if waitforS == True:
+			while 's' not in event.getKeys(): # wait for S key to start
+				pass
+		for letter, aim in enumerate(aims):
 			self.LSL.push_sample([777]) # input of new letter
 			superseq = generate_p300_superseq(numbers = range(self.stimuli_number), repetitions = repetitions)
 
@@ -219,17 +226,26 @@ class ENVIRONMENT():
 				
 				#acess timing accuracy
 				deltaT = time.time() - tt
-				deltaT = "{0:2.0f}".format(round((deltaT*1000)-200,2))
+				deltaT = "{0:2.0f}".format(round((deltaT*1000)- cycle_ms,2))
 				# print deltaT
 				deltalist[1:] = deltalist[0:-1]
 				deltalist[0] = deltaT
 				print 'delta T:%s ms \r' % str(deltalist),
 				tt = time.time()
-								
-			print 'next letter'
-			self.LSL.push_sample([888]) # end of the trial
 
-		self.exit_()
+			print 'next letter'
+			core.wait(1.5) # wait one second after last blink
+			self.LSL.push_sample([888]) # end of the trial
+		if LEARN == True:
+			core.wait(1)
+			self.LSL.push_sample([888999]) # end of learningsession
+			# start online session
+			print stim_duration_FRAMES
+		 	self.run_P300_exp(LEARN = False, stim_duration_FRAMES = stim_duration_FRAMES,
+							  ISI_FRAMES = ISI_FRAMES, repetitions =  repetitions,
+							  waitforS= waitforS)
+		else:
+			self.exit_()
 
 def generate_p300_superseq(numbers =[0,1,2,3], repetitions = 10):
 	''' receives IDs of stimuli, and number of repetitions, returns stimuli sequence without repeats'''

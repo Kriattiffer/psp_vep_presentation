@@ -15,10 +15,12 @@ def view():
 	ENV = present.ENVIRONMENT()
 	ENV.Fullscreen = True
 	ENV.refresh_rate = 60
-	# ENV.stimuli_number = 4
+	ENV.stimuli_number = 6
 	ENV.build_gui(monitor = present.mymon, rgb = ENV.rgb)
 	# ENV.run_SSVEP_exp()
-	ENV.run_P300_exp()
+	ENV.run_P300_exp(stim_duration_FRAMES = 1, ISI_FRAMES = 2, waitforS = False)
+	# ENV.run_P300_exp()
+
 	sys.stdout = open(str(os.getpid()) + ".out", "w") #MAGIC
 
 def rec():
