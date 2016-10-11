@@ -1,30 +1,43 @@
 import numpy as np
 import sys, time, warnings
 from matplotlib import pyplot  as plt 
-from pylsl import StreamInlet, resolve_stream
+from pylsl import StreamInlet, StreamOutlet, StreamInfo, resolve_stream
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
+from sklearn.externals import joblib
 from record import butter_filt
+import socket
 
 class Classifier():
 	"""docstring for Classifier"""
 	def __init__(self, mapnames, online = False,
-				top_exp_length = 60, number_of_channels = 9, sampling_rate = 500, downsample_div = 8):
+				top_exp_length = 60, number_of_channels = 9, 
+				sampling_rate = 500, downsample_div = 20, saved_classifier = False):
+	    
+
 		self.sampling_rate = sampling_rate
 		self.downsample_div = downsample_div
 		self.x_learn, self.y_learn = [], []
 		self.mode = 'LEARN'
+
+		self.sock = socket.socket()
+		self.sock.connect(('localhost', 22828))
+		
+		if saved_classifier:
+			self.mode = 'PLAY'
+			self.lda = joblib.load(saved_classifier) 
+		
 		self.letter_counter = 0
-		self.learn_aims = np.genfromtxt('aims_learn.txt')
+		self.learn_aims = np.genfromtxt('aims_learn.txt') -1
+		print self.learn_aims
 		record_length = 500*60*top_exp_length*1.2
 		array_shape = (record_length, number_of_channels)
 		self.eegstream = np.memmap(mapnames['eeg'], dtype='float', mode='r', shape=(array_shape))
 		self.markerstream = np.memmap(mapnames['markers'], dtype='float', mode='r', shape=(500*60*1.2, 2))
-		self.im =  self.create_stream()
+		self.im=  self.create_stream()
 
-		print 'classifier template created.'
-
-	def create_stream(self, stream_name_markers = 'CycleStart', recursion_meter = 0, max_recursion_depth = 3):
+	def create_stream(self, stream_name_markers = 'CycleStart', stream_name_gui = 'GUI', recursion_meter = 0, max_recursion_depth = 3):
 		''' Opens LSL stream for markers, If error, tries to reconnect several times'''
+		
 		if recursion_meter == 0:
 			recursion_meter +=1
 		elif 0<recursion_meter <max_recursion_depth:
@@ -36,6 +49,7 @@ class Classifier():
 			inlet_markers = []
 
 		print ("Classifier connecting to markers stream...")
+		# inlet for markers
 		if stream_name_markers in [stream.name() for stream in resolve_stream()]:
 			sterams_markers = resolve_stream('name', stream_name_markers)
 			inlet_markers = StreamInlet(sterams_markers[0])   
@@ -87,6 +101,8 @@ class Classifier():
 
 		elif self.mode == 'LEARN':
 			aim_let = int(self.learn_aims[self.letter_counter])
+			print aim_let
+			print lttrs
 			aims = letter_slices[lttrs[aim_let],:,:,:]
 			shpa= np.shape(aims)
 			non_aims = letter_slices[[a for a in lttrs if a != aim_let]].reshape((shp[0]-1)*shp[1], shp[2], shp[3])
@@ -98,8 +114,6 @@ class Classifier():
 			self.letter_counter +=1
 			return x, y
 
-	def plot_letters_erps(self, letter_slices):
-		pass
 
 	def mainloop(self):
 		trialstart = 0
@@ -110,20 +124,25 @@ class Classifier():
 				trialstart = timestamp_mark
 			if  marker == [888]: # end of letter trial
 				trialend = timestamp_mark
-			if marker == [888999]:
+			if marker == [888999]: # end of learning session
 				self.mode = 'PLAY'
 				print 'PLAY'
 				x, y = self.xyprepare()
 				self.learn(x, y)
 				self.letter_counter = 0
+				trialend, trialstart = 0,0
 
 			if trialend > trialstart:
 				print "TARGET CONFIRMED"
 				with warnings.catch_warnings():
 					warnings.simplefilter("ignore")
 					EEG = self.eegstream[np.logical_and(self.eegstream[:,0]>trialstart, self.eegstream[:,0]<trialend),:]
-					MARKERS = self.markerstream[np.logical_and(self.markerstream[:,0]>trialstart, self.markerstream[:,0]<trialend),:]
+					MARKERS = self.markerstream[np.logical_and( self.markerstream[:,0]>trialstart,
+					 											self.markerstream[:,0]<trialend),:]
 				lnames = np.unique(MARKERS[:,1])
+				lnames = lnames[lnames!=777]
+				lnames = lnames[lnames!=888]
+
 				eeg_slices = self.prepare_letter_slices(lnames, EEG, MARKERS)
 				if self.mode == 'LEARN':
 					x,y = self.create_feature_vectors(eeg_slices)	
@@ -138,13 +157,35 @@ class Classifier():
 		y = np.array(self.y_learn).flatten()
 		return x, y
 
-	def validate_learning(self, number_of_reps):
+	def validate_learning(self,x):
+			print self.lda.predict(x)
 			pass
+
+	def plot_letters_erps(self, x, y):
+		xaim = x[y==1]
+		xnonaim = x[y==0]
+		print np.shape(xaim)
+		print np.shape(xnonaim)
+
+		xaim = np.average(xaim, axis = 0)
+		xnonaim = np.average(xnonaim, axis = 0)
+		print np.shape(xaim)
+		print np.shape(xnonaim)
+		plt.plot(xnonaim)
+		plt.plot(xaim)
+		plt.show()
+		pass
 
 	def learn(self, x, y):
 		self.lda=LDA(solver = 'lsqr', shrinkage='auto')
 		self.lda.fit(x, y)
-		# validate_learning(number_of_reps)
+		print 'saving classifier...'
+		joblib.dump(self.lda, 'classifier_%i.cls' %(time.time()*1000)) 
+		print 'Starting online session'
+		self.sock.send('startonlinesession')
+		print '22'
+		self.plot_letters_erps(x, y)
+		self.validate_learning(x)
 
 	def classify(self, xes):
 		print np.shape(xes)
@@ -152,6 +193,7 @@ class Classifier():
 			print np.shape(vector)
 			answer = self.lda.predict(vector)
 			print answer
+			self.sock.send('answer is blah blah blah')
 		# probs for every run  - if wouldnt work otherwise
 
 		
@@ -159,11 +201,3 @@ class Classifier():
 if __name__ == '__main__':
 	mapnames = {'eeg':'eegdata.mmap', 'markers':'markers.mmap'}
 	BLDA = Classifier(mapnames, online = True)
-	# while 1:
-		# Classifier.
-		# pass
-
-	# WAIT FOR INPUT
-		# TAKE DATA
-		# DO WHAT IN NESSESARY (LEARN/PLAY)
-		# Sys.exit

@@ -1,4 +1,4 @@
-import os, sys, time, socket, random, datetime
+import os, sys, time, socket, random, datetime, socket
 from psychopy import visual, core, event, monitors
 from pylsl import StreamInfo, StreamOutlet
 import numpy as np
@@ -19,26 +19,35 @@ base_mseq = np.array(base_mseq, dtype = int)
 
 class ENVIRONMENT():
 	""" class for visual stimulation during the experiment """
-	def __init__(self, stimuli_number = 6):
+	def __init__(self):
+		# self.input_p.close()
+
 		self.rgb = '#868686'
 		self.stimcolor_p300 = [[self.rgb,self.rgb,self.rgb,self.rgb,self.rgb,self.rgb],['red', 'green', 'blue', 'pink', 'yellow', 'purple']]
 		self.stimcolor = ['white', 'white', 'white', 'white']
 		self.Fullscreen = False
 		self.window_size = (1000, 400)
-
+		self.LEARN = True
 		self. time_4_one_letter = 6 #steadystate
-
-		self.stimuli_number = stimuli_number		
+		self.stimuli_number = 6		
 		self.number_of_inputs = 12
 		self.refresh_rate = 120
 		self.LSL = create_lsl_outlet() # create outlet for sync with NIC
-		core.wait(1)
-		self.LSL.push_sample([11]) # indicate the end of __init__
+		core.wait(1)		
+
+		sck = socket.socket() # cant make Pipe() work
+		sck.bind(('localhost', 22828))
+		sck.listen(1)
+		self.conn, addr = sck.accept()	
+
+		print 'Classifier socket connected'
+
 
 	def build_gui(self, monitor = mymon,
 	 			  rgb = '#868686', stimrad = 2, fix_size = 1):
 		''' function for creating visual enviroment. Input: various parameters of stimuli, all optional'''
 		
+
 		def create_circle(i):
 			''' Call this to create identical circles, posing as stimulis'''
 			circ = visual.Circle(self.win,
@@ -124,7 +133,7 @@ class ENVIRONMENT():
 	def exit_(self):
 		''' exit and kill dependent processes'''
 		self.LSL.push_sample([999])
-		core.wait(0.5)
+		core.wait(1)
 		sys.exit()
 
 	def run_SSVEP_exp(self):
@@ -169,7 +178,7 @@ class ENVIRONMENT():
 		self.exit_()
 
 
-	def run_P300_exp(self, stim_duration_FRAMES = 3, ISI_FRAMES = 9, repetitions =  10, waitforS=True, LEARN = True):
+	def run_P300_exp(self, stim_duration_FRAMES = 3, ISI_FRAMES = 9, repetitions =  10, waitforS=True):
 		'P300 expreiment. Stimuli duration and interstimuli interval should be supplied as number of frames.'
 		cycle_ms = (stim_duration_FRAMES +ISI_FRAMES)*1000.0/self.refresh_rate
 		print 'P300 cycle is %.2f ms' % cycle_ms
@@ -179,10 +188,10 @@ class ENVIRONMENT():
 		self.cells = [self.cell1,self.cell2,self.cell3,self.cell4, self.cell5, self.cell6][0:self.stimuli_number]
 
 		p300_markers_on =  [[11], [22],[33],[44], [55], [66]]
-		if LEARN == True:
+		if self.LEARN == True:
 			aims = [int(a)-1 for a in np.genfromtxt('aims_learn.txt')]
 			print aims
-		elif LEARN == False:
+		elif self.LEARN == False:
 			aims = [int(a) -1 for a in np.genfromtxt('aims_play.txt')]
 			print aims
 
@@ -236,12 +245,23 @@ class ENVIRONMENT():
 			print 'next letter'
 			core.wait(1.5) # wait one second after last blink
 			self.LSL.push_sample([888]) # end of the trial
-		if LEARN == True:
+		
+		if self.LEARN == True:
 			core.wait(1)
 			self.LSL.push_sample([888999]) # end of learningsession
 			# start online session
 			print stim_duration_FRAMES
-		 	self.run_P300_exp(LEARN = False, stim_duration_FRAMES = stim_duration_FRAMES,
+			self.LEARN = False
+
+			# wait while classifier finishes learning
+			while self.conn.recv(1024) != 'startonlinesession':
+				pass
+			print  'learning session finished, press s to continue'
+			while 's' not in event.getKeys(): # wait for S key to start
+				pass
+			print 'Online session started'
+
+			self.run_P300_exp(stim_duration_FRAMES = stim_duration_FRAMES,
 							  ISI_FRAMES = ISI_FRAMES, repetitions =  repetitions,
 							  waitforS= waitforS)
 		else:
@@ -286,7 +306,6 @@ def create_lsl_outlet(name = 'CycleStart', DeviceMac = '00:07:80:64:EB:46'):
 	outlet =StreamOutlet(info)
 	return outlet
 
-# 
 def view():
 	'''function for multiprocessing'''
 	ENV = ENVIRONMENT()

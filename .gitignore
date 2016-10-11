@@ -94,4 +94,5 @@ _markers.txt
 *.easy
 *.info
 *.out
+*.cls
 training_set/
