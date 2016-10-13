@@ -78,33 +78,30 @@ def get_data_ds3(set):
 	print np.shape(aims)
 	return aims, non_aims
 
-def get_data_ds4_exp(mode = 'learn'):
+def get_data_ds4_exp(set = 'train'):
 	'''TDCS experiment data'''
-	mend = 999
+	mend = 888
 	mstart = 777
-	markers = np.genfromtxt('./_data/_markers.txt')
-	eeg = np.genfromtxt('./_data/_data.txt')
+	markers = np.genfromtxt('./training_set/_markers.txt')
+	eeg = np.genfromtxt('./training_set/_data.txt')
 	eeg[:,1:] = butter_filt(eeg[:,1:], (0.1,40))
 
-	aim_list = [111,222,333,444,]*47
-	aim_list  = aim_list[0:47]
-	print aim_list
-	mmm = markers[:,1]==mstart
-	mmm[-1] = True
-	letter_slices = [[] for a in range(len(aim_list)+1)]
-	
-	cc = -1
-	for a , mrk in zip(mmm[:-1], markers):
-		if a:
-			cc +=1
-		else:		
-			letter_slices[cc].append(mrk)
+	aim_list = [11,22,33,44,55,66]*4
+
+	mmm = markers[:,1]==mend 
+	markerind = np.concatenate(([0], np.arange(len(mmm))[mmm]))
+	mslices = [[markerind[i-1], markerind[i]] for i in range(len(markerind))][1:]
+	let_marks = [[markers[:,0][m[0]:m[1]] ] for m in mslices]
+
+
 
 	aim_eeg = []
 	non_aim_eeg = []
 
-	for aim, letter  in zip(aim_list, letter_slices):
+	for aim, letter  in zip(aim_list, let_marks):
+		
 		letter = np.array(letter)
+		print np.shape(letter)
 		aim_offsets =  letter[letter[:,1] == aim][:,0]
 		non_aim_offsets = letter[letter[:,1] != aim][:,0]
 		
@@ -115,7 +112,6 @@ def get_data_ds4_exp(mode = 'learn'):
 		non_aim_eeg.append(non_aim_slices)
 	aim_eeg = np.array(aim_eeg)
 	non_aim_eeg = np.array(non_aim_eeg)
-	aim_eeg = aim_eeg.reshape()
 	print np.shape(aim_eeg)
 	return aim_eeg[:,1:], non_aim_eeg[:,1:]
 
@@ -191,7 +187,7 @@ if __name__ == '__main__':
 	
 	# a, na = preprocess(get_data_ds1(set = 'train'))
 	# a, na  = get_data_ds4_exp(mode = 'learn')
-	a, na  = get_data_ds3(set = 'train')
+	a, na  = get_data_ds4_exp(set = 'train')
 	# a, na   = np.random.randint(0,100, size = np.shape(a))/1000.0,   np.random.randint(100,200, size = np.shape(na))/1000.0
 	data, y = prepare_epocs(a, na)
 	plot_ep(a, na)
@@ -200,7 +196,7 @@ if __name__ == '__main__':
 	# a, na = preprocess(get_data_ds1(set = 'test'))
 	# a, na  = get_data_ds4_exp(set='test')
 
-	a, na = get_data_ds3(set = 'test')
+	a, na = get_data_ds4_exp(set = 'test')
 	# a, na   = np.random.randint(0,100, size = np.shape(a))/1000.0,   np.random.randint(100,200, size = np.shape(na))/1000.0
 	data2, y2 = prepare_epocs(a,na)
 	plot_ep(a, na)
