@@ -6,25 +6,27 @@ from record import butter_filt
 from matplotlib import pyplot as plt
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 
+
 sampling_rate = 500
 downsample_div = 4
-averaging_bin = 4
+averaging_bin = 6
 
 
-def plot_ep(slices_aim, slices_non_aim, number_of_channels = 8):
+def plot_ep(slices_aim, slices_non_aim, number_of_channels = 8, dd = downsample_div):
 	''' get arrays of aim and non-aim epocs - plot group averages for 8 channels '''
 	avgaim = np.average(slices_aim, axis = 0)
 	avgnonaim = np.average(slices_non_aim, axis = 0)
 
-	avg_ep = [avgaim[:,1:-2], avgnonaim[:,1:-2]]
+	avg_ep = [avgaim, avgnonaim]
 	fig,axs = plt.subplots(nrows =3, ncols = 3)
 	channels = ['Fz', 'Cz', 'P3', 'Pz', 'P4', 'PO7', 'PO8', 'Oz', 'HRz']
 	for a in range(number_of_channels):
 		delta = avg_ep[0][:,a] - avg_ep[1][:,a]
-		# axs.flatten()[a].plot(range(0, len(delta)*4, 4), slices_aim[:,:,a].T) #individual eps
-		axs.flatten()[a].plot(range(0, len(delta)*4, 4), avgnonaim[:,a]) # individual eps
-		axs.flatten()[a].plot(range(0, len(delta)*4, 4), delta, linewidth = 6) # delta
-		axs.flatten()[a].plot(range(0, len(delta)*4, 4), np.zeros(np.shape(delta))) #baseline
+		# axs.flatten()[a].plot(range(0, len(delta)*dd, dd), slices_aim[:,:,a].T) #individual eps
+		axs.flatten()[a].plot(range(0, len(delta)*dd, dd), avgaim[:,a]) # individual eps
+		axs.flatten()[a].plot(range(0, len(delta)*dd, dd), avgnonaim[:,a]) # individual eps
+		axs.flatten()[a].plot(range(0, len(delta)*dd, dd), delta, linewidth = 6) # delta
+		axs.flatten()[a].plot(range(0, len(delta)*dd, dd), np.zeros(np.shape(delta))) #baseline
 		axs.flatten()[a].set_title(channels[a])
 	print 'averaged EP: N=%i' % np.shape(slices_aim)[0]
 	plt.show()
@@ -80,40 +82,59 @@ def get_data_ds3(set):
 
 def get_data_ds4_exp(set = 'train'):
 	'''TDCS experiment data'''
+	print set
 	mend = 888
 	mstart = 777
-	markers = np.genfromtxt('./training_set/_markers.txt')
-	eeg = np.genfromtxt('./training_set/_data.txt')
-	eeg[:,1:] = butter_filt(eeg[:,1:], (0.1,40))
+	markers = np.genfromtxt('./_markers.txt')
+	eeg = np.genfromtxt('./_data.txt')
+	eeg[:,1:] = butter_filt(eeg[:,1:], (1,24))
 
 	aim_list = [11,22,33,44,55,66]*4
+	for a in range(np.shape(markers)[0]):
+		if markers[a,1] == 888999:
+			break
+	if set == 'train':
+		markers = markers[a+1:,:]
+		print np.shape(markers)
+	elif set == 'test':
+		markers = markers[:a,:]
+		print np.shape(markers)
+
+	else:
+		print 'WTF'
 
 	mmm = markers[:,1]==mend 
 	markerind = np.concatenate(([0], np.arange(len(mmm))[mmm]))
 	mslices = [[markerind[i-1], markerind[i]] for i in range(len(markerind))][1:]
-	let_marks = [[markers[:,0][m[0]:m[1]] ] for m in mslices]
+	let_marks = [[markers[m[0]:m[1]] ][0] for m in mslices]
 
 
+	let_marks_clean = [a[np.logical_and(a[:,1]!=888, a[:,1]!=777)] for a in let_marks]
 
 	aim_eeg = []
 	non_aim_eeg = []
 
-	for aim, letter  in zip(aim_list, let_marks):
+	for aim, letter  in zip(aim_list, let_marks_clean):
 		
 		letter = np.array(letter)
-		print np.shape(letter)
 		aim_offsets =  letter[letter[:,1] == aim][:,0]
 		non_aim_offsets = letter[letter[:,1] != aim][:,0]
 		
 		aim_slices = slice_eeg(aim_offsets, eeg)
 		non_aim_slices = slice_eeg(non_aim_offsets, eeg)
+		aim_eeg.append(aim_slices[:, :,1:])
+		non_aim_eeg.append(non_aim_slices[:,:,1:])
 
-		aim_eeg.append(aim_slices)
-		non_aim_eeg.append(non_aim_slices)
+
 	aim_eeg = np.array(aim_eeg)
 	non_aim_eeg = np.array(non_aim_eeg)
-	print np.shape(aim_eeg)
-	return aim_eeg[:,1:], non_aim_eeg[:,1:]
+	shpa =  np.shape(aim_eeg)
+	shpn =  np.shape(non_aim_eeg)
+
+	aim_eeg = aim_eeg.reshape((shpa[1]*shpa[0], shpa[2], shpa[3]))
+	non_aim_eeg =non_aim_eeg.reshape((shpn[1]*shpn[0], shpn[2], shpn[3]))
+
+	return aim_eeg, non_aim_eeg
 
 def preprocess(EEG):
 	''' Filter EEG; cut in into aim and non-aim epocs '''
@@ -151,10 +172,8 @@ def subtrfirst(slices):
 	return slices
 
 def average_epocs(slices):
-	print '228'
 	'''Average aim and non_aim epocs according to given averaging_bin. '''
 	shp = np.shape(slices)
-	print shp
 
 	slices = slices[shp[0]%averaging_bin:,:,:]
 	slices = slices.reshape((shp[0]/averaging_bin, averaging_bin, shp[1], shp[2]))
@@ -168,6 +187,7 @@ def prepare_epocs(aims, non_aims, session= 'train'):
 	Then transform to feature vectors and create y'''
 	aims, non_aims = downsample(aims), downsample(non_aims)
 	aims, non_aims = subtrfirst(aims), subtrfirst(non_aims)
+
 	aims, non_aims = average_epocs(aims), average_epocs(non_aims)
 
 	shpa= np.shape(aims)
@@ -179,7 +199,6 @@ def prepare_epocs(aims, non_aims, session= 'train'):
 		return x
 	else:
 		y = [1 if a < shpa[0] else 0 for a in range(np.shape(x)[0]) ]
-		print np.shape(x), y
 		return x, y
 
 
@@ -208,7 +227,11 @@ if __name__ == '__main__':
 
 	###########
 	print answer == y2
-	print np.shape([np.array(y2) ==1])
-	print (sum(answer[np.array(y2) ==1] == 1))/float(np.shape([np.array(y2) ==1])[0])
+	print np.sum([np.array(y2) ==1])
+	print np.sum([np.array(y2) ==0])
+	print np.shape(y2)
+	print y2
+
+	print (sum(answer[np.array(y2) ==1] == 1))/float(np.sum([np.array(y2) ==1]))
 	print (sum(answer[np.array(y2) ==1] == 1) + sum(answer[np.array(y2) ==0] == 0))/float(len(y2))
 	print sum(answer)

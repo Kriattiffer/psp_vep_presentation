@@ -1,11 +1,12 @@
 import numpy as np
-import sys, time, warnings
+import os, sys, time, warnings
 from matplotlib import pyplot  as plt 
 from pylsl import StreamInlet, StreamOutlet, StreamInfo, resolve_stream
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 from sklearn.externals import joblib
 from record import butter_filt
 import socket
+import subprocess
 
 class Classifier():
 	"""docstring for Classifier"""
@@ -13,7 +14,7 @@ class Classifier():
 				top_exp_length = 60, number_of_channels = 9, 
 				sampling_rate = 500, downsample_div = 20, saved_classifier = False):
 	    
-
+		self.LEARN_BY_DELTAS = False
 		self.sampling_rate = sampling_rate
 		self.downsample_div = downsample_div
 		self.x_learn, self.y_learn = [], []
@@ -85,19 +86,26 @@ class Classifier():
 	def create_feature_vectors(self, letter_slices):
 		shp = np.shape(letter_slices)
 		lttrs = range(shp[0])
+		print lttrs
+		print shp
 		if self.mode == 'PLAY':
 			xes = [[] for a in lttrs]
 			for letter in lttrs:
 				aims = letter_slices[letter,:,:,:]
 				shpa= np.shape(aims)
-				non_aims = letter_slices[[a for a in lttrs if a != letter]].reshape((shp[0]-1)*shp[1], shp[2], shp[3])
-				aim_feature_vectors = aims.reshape(shpa[0], shpa[1]*shpa[2])
-				shpn= np.shape(non_aims)
-				non_aim_feature_vectors = non_aims.reshape(shpn[0], shpn[1]*shpn[2])
-				x = np.concatenate((aim_feature_vectors, non_aim_feature_vectors), axis = 0)
-				xes[letter] = x
+				# non_aims = letter_slices[[a for a in lttrs if a != letter]].reshape((shp[0]-1)*shp[1], shp[2], shp[3])
+				# shpn= np.shape(non_aims)
 				
-			return np.array(xes)
+				aim_feature_vectors = aims.reshape(shpa[0], shpa[1]*shpa[2])
+				# non_aim_feature_vectors = non_aims.reshape(shpn[0], shpn[1]*shpn[2])
+				if self.LEARN_BY_DELTAS == True:
+					pass
+				# x = np.concatenate((aim_feature_vectors, non_aim_feature_vectors), axis = 0)
+				x = aim_feature_vectors
+				xes[letter] = x
+			xes = np.array(xes)
+			# xes = np.average(xes, axis = 1)
+			return xes
 
 		elif self.mode == 'LEARN':
 			aim_let = int(self.learn_aims[self.letter_counter])
@@ -109,9 +117,12 @@ class Classifier():
 			aim_feature_vectors = aims.reshape(shpa[0], shpa[1]*shpa[2])
 			shpn= np.shape(non_aims)
 			non_aim_feature_vectors = non_aims.reshape(shpn[0], shpn[1]*shpn[2])
+			if self.LEARN_BY_DELTAS == True:
+				pass
 			x = np.concatenate((aim_feature_vectors, non_aim_feature_vectors), axis = 0)
 			y = [1 if a < shpa[0] else 0 for a in range(np.shape(x)[0]) ]
 			self.letter_counter +=1
+
 			return x, y
 
 
@@ -144,6 +155,7 @@ class Classifier():
 				lnames = lnames[lnames!=888]
 
 				eeg_slices = self.prepare_letter_slices(lnames, EEG, MARKERS)
+				print np.shape(eeg_slices)
 				if self.mode == 'LEARN':
 					x,y = self.create_feature_vectors(eeg_slices)	
 					self.x_learn.append(x), self.y_learn.append(y)
@@ -161,20 +173,12 @@ class Classifier():
 			print self.lda.predict(x)
 			pass
 
-	def plot_letters_erps(self, x, y):
-		xaim = x[y==1]
-		xnonaim = x[y==0]
-		print np.shape(xaim)
-		print np.shape(xnonaim)
-
-		xaim = np.average(xaim, axis = 0)
-		xnonaim = np.average(xnonaim, axis = 0)
-		print np.shape(xaim)
-		print np.shape(xnonaim)
-		plt.plot(xnonaim)
-		plt.plot(xaim)
+	def plot_letters_erps(self, aims, non_aims):
+		aim = np.average(aims, axis = 0)
+		non_aim = np.average(non_aims, axis = 0)
+		plt.plot(non_aim)
+		plt.plot(aim)
 		plt.show()
-		pass
 
 	def learn(self, x, y):
 		self.lda=LDA(solver = 'lsqr', shrinkage='auto')
@@ -183,17 +187,23 @@ class Classifier():
 		joblib.dump(self.lda, 'classifier_%i.cls' %(time.time()*1000)) 
 		print 'Starting online session'
 		self.sock.send('startonlinesession')
-		print '22'
-		self.plot_letters_erps(x, y)
-		self.validate_learning(x)
+		# self.validate_learning(x)
 
 	def classify(self, xes):
-		print np.shape(xes)
+		print 'xes',np.shape(xes)
+		ans = []
 		for vector in xes:
-			print np.shape(vector)
 			answer = self.lda.predict(vector)
-			print answer
-			self.sock.send('answer is blah blah blah')
+			ans.append(sum(answer))
+		print ans
+		word = ['red', 'green', 'blue', 'pink', 'yellow', 'purple'][ max(xrange(len(ans)), key = lambda x: ans[x])]
+		
+
+		try:
+			subprocess.call(['C:\\Program Files (x86)\\eSpeak\\command_line\\espeak.exe', word])
+		except WindowsError:
+			print 'install eSpeak for speech synthesys'
+		self.sock.send('answer is blah blah blah')
 		# probs for every run  - if wouldnt work otherwise
 
 		
