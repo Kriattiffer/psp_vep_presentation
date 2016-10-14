@@ -9,10 +9,10 @@ mapnames = {'eeg':'eegdata.mmap', 'markers':'markers.mmap'}
 top_exp_length = 60
 number_of_channels = 9
 savedclass = False
-savedclass = 'classifier_1476365400278.cls'
+# savedclass = 'classifier_1476365400278.cls'
 
 def view():
-	'''create stimulation window'''
+	'''Create stimulation window'''
 	ENV = present.ENVIRONMENT()
 	ENV.Fullscreen = True
 	ENV.refresh_rate = 60
@@ -23,18 +23,19 @@ def view():
 		print 'Using saved classifier from %s' % savedclass
 	else:
 		print 'Buildindg new classifier'
-	ENV.run_P300_exp(stim_duration_FRAMES = 3, ISI_FRAMES = 9, 
+	ENV.run_P300_exp(stim_duration_FRAMES = 1, ISI_FRAMES = 1, 
 					waitforS = False)
 	sys.stdout = open(str(os.getpid()) + ".out", "w") #MAGIC
 
 def rec():
-	''' create stream class and start recording and plotting'''
+	''' Create stream class and start recording and plotting'''
 	STRM = record.EEG_STREAM(mapnames = mapnames, plot_fft = False, plot_to_second_screen = True,
 								top_exp_length = top_exp_length, number_of_channels  = number_of_channels)
 	STRM.plot_and_record()
 	sys.stdout = open(str(os.getpid()) + ".out", "w")
 
 def class_():
+	'''Create classifer class and wait for markers from present.py'''
 	CLSF = classify.Classifier(mapnames = mapnames, online = True,
 									top_exp_length = top_exp_length, 
 									number_of_channels = number_of_channels, 
@@ -44,14 +45,14 @@ def class_():
 
 
 if __name__ == '__main__':
-	print 'startig GUI...'
 	pgui = multiprocessing.Process(target=view)
-	print 'startig backend...'
 	prec = multiprocessing.Process(target=rec)
-	print 'startig classifier...'
 	pclass = multiprocessing.Process(target=class_)
-
+	
+	print 'startig backend...'
 	prec.start()
+	print 'startig GUI...'
 	pgui.start()
 	time.sleep(4)
+	print 'startig classifier...'
 	pclass.start()

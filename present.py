@@ -242,10 +242,14 @@ class ENVIRONMENT():
 				print 'delta T:%s ms \r' % str(deltalist),
 				tt = time.time()
 
-			print 'next letter'
+			
 			core.wait(1.5) # wait one second after last blink
 			self.LSL.push_sample([888]) # end of the trial
 			core.wait(0.5)
+			if self.LEARN == False:
+				while 'answer' not in self.conn.recv(1024):
+					pass	
+				print 'next letter'
 		
 		if self.LEARN == True:
 			core.wait(1)

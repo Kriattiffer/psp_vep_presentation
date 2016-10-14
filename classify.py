@@ -7,36 +7,39 @@ from sklearn.externals import joblib
 from record import butter_filt
 import socket
 import subprocess
+from multiprocessing import Process
 
 class Classifier():
 	"""docstring for Classifier"""
 	def __init__(self, mapnames, online = False,
-				top_exp_length = 60, number_of_channels = 9, 
-				sampling_rate = 500, downsample_div = 20, saved_classifier = False):
-	    
+				top_exp_length = 60, number_of_channels = 8+1, 
+				sampling_rate = 500, downsample_div = 10, saved_classifier = False):
+		
 		self.LEARN_BY_DELTAS = False
 		self.sampling_rate = sampling_rate
 		self.downsample_div = downsample_div
-		self.x_learn, self.y_learn = [], []
+		self.SPEAK =True
+		self.number_of_EEG_channels = number_of_channels-1
+		self.x_learn, self.y_learn = [], [] #lists of feature vectors and class labels for learning
 		self.mode = 'LEARN'
 
-		self.sock = socket.socket()
+		self.sock = socket.socket() # socket for interaction with present.py
 		self.sock.connect(('localhost', 22828))
 		
-		if saved_classifier:
+		if saved_classifier: # if provided previouslly saved classifier, load it and skip learning stage
 			self.mode = 'PLAY'
 			self.lda = joblib.load(saved_classifier) 
 		
-		self.letter_counter = 0
+		self.letter_counter = 0 # this is to know what stimuli is aim now
 		self.learn_aims = np.genfromtxt('aims_learn.txt') -1
-		print self.learn_aims
+		
 		record_length = 500*60*top_exp_length*1.2
 		array_shape = (record_length, number_of_channels)
 		self.eegstream = np.memmap(mapnames['eeg'], dtype='float', mode='r', shape=(array_shape))
 		self.markerstream = np.memmap(mapnames['markers'], dtype='float', mode='r', shape=(500*60*1.2, 2))
-		self.im=  self.create_stream()
+		self.im=self.create_stream() # LSL stream for markers
 
-	def create_stream(self, stream_name_markers = 'CycleStart', stream_name_gui = 'GUI', recursion_meter = 0, max_recursion_depth = 3):
+	def create_stream(self, stream_name_markers = 'CycleStart', recursion_meter = 0, max_recursion_depth = 3):
 		''' Opens LSL stream for markers, If error, tries to reconnect several times'''
 		
 		if recursion_meter == 0:
@@ -66,9 +69,19 @@ class Classifier():
 		return inlet_markers
 
 	def prepare_letter_slices(self, codes, EEG, MARKERS):
+		'''Make array of epocs corresponding to single stimuli
+			from raw EEG and markers '''
+
 		def downsample(slices):
+			'''Take every Nth EEG sample '''
 			slices = slices[:,:,::self.downsample_div,:] #downsample  
 			return slices
+
+		def subtrfirst(slices):
+			'''Make all epocs start from zero'''
+			# slices = slices - slices[:,:,0:1,:] # subtract 1st sample
+			return slices
+
 		EEG[:,1:] = butter_filt(EEG[:,1:], [1,20], fs = self.sampling_rate) # filter
 		letters = [[] for a in codes]
 		letter_slices = [[] for a in codes]
@@ -81,13 +94,17 @@ class Classifier():
 				letter_slices[i].append(eegs)
 		letter_slices = np.array(letter_slices)
 		letter_slices = downsample(letter_slices)
+		letter_slices = subtrfirst(letter_slices)
+
 		return letter_slices
 
 	def create_feature_vectors(self, letter_slices):
+		'''Create feature vectors from letter slices.
+			In learn mode returns array of feature vectors and list of class labels.
+			In play mode  returns array of arrays of feature vectors for every stimuli '''
 		shp = np.shape(letter_slices)
 		lttrs = range(shp[0])
-		print lttrs
-		print shp
+		
 		if self.mode == 'PLAY':
 			xes = [[] for a in lttrs]
 			for letter in lttrs:
@@ -110,7 +127,6 @@ class Classifier():
 		elif self.mode == 'LEARN':
 			aim_let = int(self.learn_aims[self.letter_counter])
 			print aim_let
-			print lttrs
 			aims = letter_slices[lttrs[aim_let],:,:,:]
 			shpa= np.shape(aims)
 			non_aims = letter_slices[[a for a in lttrs if a != aim_let]].reshape((shp[0]-1)*shp[1], shp[2], shp[3])
@@ -122,16 +138,17 @@ class Classifier():
 			x = np.concatenate((aim_feature_vectors, non_aim_feature_vectors), axis = 0)
 			y = [1 if a < shpa[0] else 0 for a in range(np.shape(x)[0]) ]
 			self.letter_counter +=1
-
 			return x, y
 
 
 	def mainloop(self):
+		''' Main cycle of Classifier class. 
+			Waits for specific markes from present.py to start cutting EEG and classifying EPs'''
 		trialstart = 0
 		trialend = 0
 		while  1:
 			marker, timestamp_mark = self.im.pull_sample()
-			if marker == [777]:
+			if marker == [777]: # begining of letter trial
 				trialstart = timestamp_mark
 			if  marker == [888]: # end of letter trial
 				trialend = timestamp_mark
@@ -139,13 +156,14 @@ class Classifier():
 				self.mode = 'PLAY'
 				print 'PLAY'
 				x, y = self.xyprepare()
-				self.learn(x, y)
+				self.learn_LDA(x, y)
+
 				self.letter_counter = 0
 				trialend, trialstart = 0,0
 
 			if trialend > trialstart:
 				print "TARGET CONFIRMED"
-				with warnings.catch_warnings():
+				with warnings.catch_warnings(): # >< operators generate warnings on arrays with NaNs, like our EEG array
 					warnings.simplefilter("ignore")
 					EEG = self.eegstream[np.logical_and(self.eegstream[:,0]>trialstart, self.eegstream[:,0]<trialend),:]
 					MARKERS = self.markerstream[np.logical_and( self.markerstream[:,0]>trialstart,
@@ -155,7 +173,6 @@ class Classifier():
 				lnames = lnames[lnames!=888]
 
 				eeg_slices = self.prepare_letter_slices(lnames, EEG, MARKERS)
-				print np.shape(eeg_slices)
 				if self.mode == 'LEARN':
 					x,y = self.create_feature_vectors(eeg_slices)	
 					self.x_learn.append(x), self.y_learn.append(y)
@@ -164,46 +181,80 @@ class Classifier():
 					self.classify(xes)
 
 	def xyprepare(self):
+		''' reshape matrix of feature vectors to fit classifier'''
 		shp = np.shape(self.x_learn)
 		x = np.array(self.x_learn).reshape(shp[0]*shp[1], shp[2])
 		y = np.array(self.y_learn).flatten()
 		return x, y
 
 	def validate_learning(self,x):
-			print self.lda.predict(x)
+			print self.CLASSIFIER.predict(x)
 			pass
 
-	def plot_letters_erps(self, aims, non_aims):
-		aim = np.average(aims, axis = 0)
-		non_aim = np.average(non_aims, axis = 0)
-		plt.plot(non_aim)
-		plt.plot(aim)
+	def plot_ep(self, x, y):
+		''' get arrays of feature vectors and class labels;
+			reshape them to lists of aim and non-aim epocs;	 plot averages for 8 channels '''
+		xaim =x[y==1]
+		xnonaim = x[y==0]
+		avgxaim = np.average(xaim, axis = 0)
+		avgxnonaim = np.average(xnonaim, axis = 0)
+		avgaim = np.split(avgxaim, self.number_of_EEG_channels)
+		avgnonaim = np.split(avgxnonaim, self.number_of_EEG_channels)
+		avg_ep = [avgaim, avgnonaim]
+
+		fig,axs = plt.subplots(nrows =3, ncols = 3)
+		channels = ['Fz', 'Cz', 'P3', 'Pz', 'P4', 'PO7', 'PO8', 'Oz', 'HRz']
+		for a in range(self.number_of_EEG_channels):
+			delta = avg_ep[0][a] - avg_ep[1][a]
+
+			axs.flatten()[a].plot(range(len(delta)), avgaim[a]) # aim eps
+			axs.flatten()[a].plot(range(len(delta)), avgnonaim[a]) # non-aim eps
+			axs.flatten()[a].plot(range(len(delta)), delta, linewidth = 6) # delta
+			axs.flatten()[a].plot(range(len(delta)), np.zeros(np.shape(delta))) #baseline
+			axs.flatten()[a].set_title(channels[a])
+		print 'averaged EP: N_aim=%i, N_nonaim=%i' % (sum(y==1), sum(y==0))
 		plt.show()
 
-	def learn(self, x, y):
-		self.lda=LDA(solver = 'lsqr', shrinkage='auto')
-		self.lda.fit(x, y)
+
+	def learn_LDA(self, x, y):
+		''' gets list of feature vectors and their class labels;
+			plots ERPs;
+			learns LDA;	saves LDA model to disc;
+			sends packet to record.py process to allow start of online session with feedback
+		'''
+		self.plot_ep(x,y)
+		self.CLASSIFIER=LDA(solver = 'lsqr', shrinkage='auto')
+		self.CLASSIFIER.fit(x, y)
 		print 'saving classifier...'
-		joblib.dump(self.lda, 'classifier_%i.cls' %(time.time()*1000)) 
+		joblib.dump(self.CLASSIFIER, 'classifier_%i.cls' %(time.time()*1000)) 
 		print 'Starting online session'
 		self.sock.send('startonlinesession')
 		# self.validate_learning(x)
 
-	def classify(self, xes):
-		print 'xes',np.shape(xes)
-		ans = []
-		for vector in xes:
-			answer = self.lda.predict(vector)
-			ans.append(sum(answer))
-		print ans
-		word = ['red', 'green', 'blue', 'pink', 'yellow', 'purple'][ max(xrange(len(ans)), key = lambda x: ans[x])]
-		
-
+	def say_aloud(self, ans, index):
+		word = ['red', 'green', 'blue', 'pink', 'yellow', 'purple'][index] # name of max-scored stimuli
+		if ans[index] == 0:
+			word = 'No command selected'
 		try:
 			subprocess.call(['C:\\Program Files (x86)\\eSpeak\\command_line\\espeak.exe', word])
 		except WindowsError:
 			print 'install eSpeak for speech synthesys'
-		self.sock.send('answer is blah blah blah')
+
+	def classify(self, xes):
+		''' Function gets list of lists of feature vectors for all stimuli; 
+		predicts classes for all vectors; returns index of the stimuli that scored maximum;
+		says the name of corresponding command aloud using eSpeak;
+			sends index of command to record.py process'''
+		ans = []
+		for vector in xes:
+			answer = self.CLASSIFIER.predict(vector)
+			ans.append(sum(answer))
+		print ans
+		index = max(xrange(len(ans)), key = lambda x: ans[x]) # index of max-scored stimuli		
+		if self.SPEAK ==True:
+			self.say_aloud(ans, index)
+		self.sock.send('answer is %i' %index) # start presentation for next aim stimuli
+		return index
 		# probs for every run  - if wouldnt work otherwise
 
 		
