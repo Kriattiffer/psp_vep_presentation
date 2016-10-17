@@ -3,7 +3,7 @@ from psychopy import visual, core, event, monitors
 from pylsl import StreamInfo, StreamOutlet
 import numpy as np
 from psychopy.tools.monitorunittools import posToPix
-
+print 'done imports'
 
 mymon = monitors.Monitor('Eizo', distance=48, width = 52.5)
 # mymon = monitors.Monitor('zenbook', distance=18, width = 29.5)
@@ -16,31 +16,49 @@ base_mseq = [0,0,0,0,0,0,1,1,1,1,1,0,1,1,1,1,0,0,1,1,1,0,1,0,1,1,0,0,2,2,1,0,1,1
 # base_mseq = [a for a in base_mseq for b in [0,0]] # extend sequence
 base_mseq = np.array(base_mseq, dtype = int)
 
-
 class ENVIRONMENT():
 	""" class for visual stimulation during the experiment """
-	def __init__(self):
+	def __init__(self, DEMO = False):
 		# self.input_p.close()
 
 		self.rgb = '#868686'
 		self.stimcolor_p300 = [[self.rgb,self.rgb,self.rgb,self.rgb,self.rgb,self.rgb],['red', 'green', 'blue', 'pink', 'yellow', 'purple']]
 		self.stimcolor = ['white', 'white', 'white', 'white']
 		self.Fullscreen = False
-		self.window_size = (1000, 400)
+		self.window_size = (1920, 1080)
 		self.LEARN = True
 		self. time_4_one_letter = 6 #steadystate
 		self.stimuli_number = 6		
 		self.number_of_inputs = 12
 		self.refresh_rate = 120
-		self.LSL = create_lsl_outlet() # create outlet for sync with NIC
-		core.wait(1)		
 
-		sck = socket.socket() # cant make Pipe() work
-		sck.bind(('localhost', 22828))
-		sck.listen(1)
-		self.conn, addr = sck.accept()	
+		if DEMO == True:
+			self.LSL, self.conn = self.fake_lsl_and_conn()
 
-		print 'Classifier socket connected'
+		elif DEMO == False:
+			self.LSL = create_lsl_outlet() # create outlet for sync with NIC
+			core.wait(1)		
+			sck = socket.socket() # cant make Pipe() work
+			sck.bind(('localhost', 22828))
+			sck.listen(1)
+			self.conn, addr = sck.accept()	
+			print 'Classifier socket connected'
+		
+	def fake_lsl_and_conn(self):
+		fakeLSL = create_lsl_outlet() # create outlet for sync with NIC - dosen't need connection
+		class Fakeconn(object):
+			"""dummy connection class with recv() method"""
+			def __init__(self):
+				pass
+			def recv(self, arg):
+				'''returns different strings in different enviroments 
+					depending on number of bits input'''
+				if arg == 1024:
+					return 'answer'
+				elif arg == 2048:
+					return 'startonlinesession'
+		return fakeLSL, Fakeconn()
+				
 
 
 	def build_gui(self, monitor = mymon,
@@ -259,7 +277,7 @@ class ENVIRONMENT():
 			self.LEARN = False
 
 			# wait while classifier finishes learning
-			while self.conn.recv(1024) != 'startonlinesession':
+			while self.conn.recv(2048) != 'startonlinesession':
 				pass
 			print  'learning session finished, press s to continue'
 			while 's' not in event.getKeys(): # wait for S key to start
@@ -319,8 +337,10 @@ def view():
 
 if __name__ == '__main__':
 	
-	ENV = ENVIRONMENT()
-	ENV.Fullscreen = True
-	ENV.refresh_rate = 120
+	os.chdir(os.path.dirname(__file__)) 	# VLC PATH BUG ==> submit?
+
+	ENV = ENVIRONMENT(DEMO = True)
+	# ENV.Fullscreen = True
+	ENV.refresh_rate = 60
 	ENV.build_gui(monitor = mymon, rgb = ENV.rgb)
 	ENV.run_P300_exp()
