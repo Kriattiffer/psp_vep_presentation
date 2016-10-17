@@ -3,7 +3,6 @@ from psychopy import visual, core, event, monitors
 from pylsl import StreamInfo, StreamOutlet
 import numpy as np
 from psychopy.tools.monitorunittools import posToPix
-print 'done imports'
 
 mymon = monitors.Monitor('Eizo', distance=48, width = 52.5)
 # mymon = monitors.Monitor('zenbook', distance=18, width = 29.5)

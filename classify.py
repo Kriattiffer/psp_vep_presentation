@@ -28,9 +28,9 @@ class Classifier():
 		
 		if saved_classifier: # if provided previouslly saved classifier, load it and skip learning stage
 			self.mode = 'PLAY'
-			self.lda = joblib.load(saved_classifier) 
+			self.CLASSIFIER = joblib.load(saved_classifier) 
 		
-		self.letter_counter = 0 # this is to know what stimuli is aim now
+		self.letter_counter = 0 # this is to know what stimuli is aim now for learning_stage
 		self.learn_aims = np.genfromtxt('aims_learn.txt') -1
 		
 		record_length = 500*60*top_exp_length*1.2
@@ -126,7 +126,7 @@ class Classifier():
 
 		elif self.mode == 'LEARN':
 			aim_let = int(self.learn_aims[self.letter_counter])
-			print aim_let
+			# print aim_let
 			aims = letter_slices[lttrs[aim_let],:,:,:]
 			shpa= np.shape(aims)
 			non_aims = letter_slices[[a for a in lttrs if a != aim_let]].reshape((shp[0]-1)*shp[1], shp[2], shp[3])
@@ -246,11 +246,21 @@ class Classifier():
 		says the name of corresponding command aloud using eSpeak;
 			sends index of command to record.py process'''
 		ans = []
+		probs = []
 		for vector in xes:
 			answer = self.CLASSIFIER.predict(vector)
+			prob = self.CLASSIFIER.predict_proba(vector)
+			probs.append(prob)
 			ans.append(sum(answer))
+		probs = [np.prod(prob, axis = 0) for prob in probs] 
+		probs =  [b[1]/(b[0]+ b[1]) for b in probs] # estimate probability of each stimuli being aim
+
+		# np.set_printoptions(precision=5)
+		np.set_printoptions(suppress=True)
+		print probs
 		print ans
-		index = max(xrange(len(ans)), key = lambda x: ans[x]) # index of max-scored stimuli		
+		index = max(xrange(len(probs)), key = lambda x: probs[x]) # index of max-scored stimuli		
+		# index = max(xrange(len(ans)), key = lambda x: ans[x]) # index of max-scored stimuli		
 		if self.SPEAK ==True:
 			self.say_aloud(ans, index)
 		self.sock.send('answer is %i' %index) # start presentation for next aim stimuli
