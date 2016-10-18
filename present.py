@@ -115,6 +115,9 @@ class ENVIRONMENT():
 		if self.stimuli_number == 6:
 			self.cell5.pos = [-14, -8]
 			self.cell6.pos = [14, -8]
+			
+		self.cells = [self.cell1,self.cell2,self.cell3,self.cell4, self.cell5, self.cell6][0:self.stimuli_number]
+		self.p300_markers_on =  [[11], [22],[33],[44], [55], [66]]
 
 
 
@@ -201,10 +204,7 @@ class ENVIRONMENT():
 		print 'P300 cycle is %.2f ms' % cycle_ms
 		seq = [1]*stim_duration_FRAMES + [0]*ISI_FRAMES
 
-		# self.cells = [self.cell1,self.cell2,self.cell3,self.cell4]
-		self.cells = [self.cell1,self.cell2,self.cell3,self.cell4, self.cell5, self.cell6][0:self.stimuli_number]
 
-		p300_markers_on =  [[11], [22],[33],[44], [55], [66]]
 		if self.LEARN == True:
 			aims = [int(a)-1 for a in np.genfromtxt('aims_learn.txt')]
 			print aims
@@ -237,11 +237,11 @@ class ENVIRONMENT():
 			for a in superseq:
 				self.cells[a].fillColor = self.stimcolor_p300[1][self.cells[a].name]
 				self.win.flip()
-				self.LSL.push_sample(p300_markers_on[a]) # push marker immdiately after first bit of the sequence
+				self.LSL.push_sample(self.p300_markers_on[a]) # push marker immdiately after first bit of the sequence
 				## tried to sync _data and .easy files.
 				# dtm =  datetime.datetime.now()
 				# dtmint = int(time.mktime(dtm.timetuple())*1000 + dtm.microsecond/1000)
-				# dtmint = dtmint - (dtmint/1000000)*1000000 +  p300_markers_on[a][0]*1000000
+				# dtmint = dtmint - (dtmint/1000000)*1000000 +  self.p300_markers_on[a][0]*1000000
 				# print int(time.mktime(dtm.timetuple())*1000 + dtm.microsecond/1000)
 				# self.LSL.push_sample([dtmint]) # push marker immdiately after first bit of the sequence; first digit is the number, other  - tail of Unix Time
 
@@ -335,7 +335,7 @@ def view():
 	ENV.run_exp(base_mseq)
 
 if __name__ == '__main__':
-	
+	print 'done imports'
 	os.chdir(os.path.dirname(__file__)) 	# VLC PATH BUG ==> submit?
 
 	ENV = ENVIRONMENT(DEMO = True)
