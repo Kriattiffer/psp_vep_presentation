@@ -23,8 +23,8 @@ def view():
 		print 'Using saved classifier from %s' % savedclass
 	else:
 		print 'Buildindg new classifier'
-	ENV.run_P300_exp(stim_duration_FRAMES = 3, ISI_FRAMES = 10, 
-					waitforS = False, repetitions=6)
+	ENV.run_P300_exp(stim_duration_FRAMES = 10, ISI_FRAMES = 10, 
+					waitforS = False, repetitions=200)
 	sys.stdout = open(str(os.getpid()) + ".out", "w") #MAGIC
 
 def rec():

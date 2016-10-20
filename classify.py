@@ -179,6 +179,8 @@ class Classifier():
 				elif self.mode == 'PLAY':
 					xes = self.create_feature_vectors(eeg_slices)	
 					self.classify(xes)
+					trialend, trialstart = 0,0
+
 
 	def xyprepare(self):
 		''' reshape matrix of feature vectors to fit classifier'''

@@ -206,10 +206,10 @@ class ENVIRONMENT():
 
 
 		if self.LEARN == True:
-			aims = [int(a)-1 for a in np.genfromtxt('aims_learn.txt')]
+			aims = [int(a)-1 for a in np.genfromtxt('aims_learn.txt')][0:1]
 			print aims
 		elif self.LEARN == False:
-			aims = [int(a) -1 for a in np.genfromtxt('aims_play.txt')]
+			aims = [int(a) -1 for a in np.genfromtxt('aims_play.txt')][0:1]
 			print aims
 
 		if waitforS == True:
@@ -253,6 +253,8 @@ class ENVIRONMENT():
 				#acess timing accuracy
 				deltaT = time.time() - tt
 				deltaT = "{0:2.0f}".format(round((deltaT*1000)- cycle_ms,2))
+				if abs(int(deltaT)) >7:
+					print 'danger: delta T is %s' % deltaT
 				# print deltaT
 				deltalist[1:] = deltalist[0:-1]
 				deltalist[0] = deltaT
