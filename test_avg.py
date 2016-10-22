@@ -18,14 +18,53 @@ def slice_eeg(offsets,eeg, sample_length = 200):
 			slices.append(slice)
 	return np.array(slices)
 
+def get_maximums_from_eeg(eeg, window_length = 140):
+	eeg = eeg[:,0:2]
+
+	maxlist = []
+	amold =0 
+	for a in  range(0, np.shape(eeg)[0]-window_length):
+		slice = eeg[a:a+window_length,:]
+		am = np.argmax(slice[:,1])
+		mx = slice[:,0][am]
+		if mx not in maxlist:
+			try:
+				delta = (mx-maxlist[-1])*1000 
+				if abs(delta)<window_length:
+					pass
+					# print mx
+					# print maxlist[-1]
+					# print a
+					# print (mx-maxlist[-1])*1000
+					# plt.plot(slice[:,1])
+					# plt.plot(eeg[a-delta:a+window_length-delta,1])
+					# plt.plot(amold, 'o')
+
+					# plt.show()
+			except:
+				pass
+			maxlist.append(mx)
+
+	maxinds =  np.array(maxlist)
+	return maxinds
+	# minddelta = (maxinds[1:] - maxinds[:-1])*1000
+	# print minddelta
+	# plt.hist(minddelta, bins = 200)
+	# plt.show()
+	# plt.plot(minddelta,"o")
+	# plt.show()
+
+def find_nearest(array,value):
+    idx = (np.abs(array-value)).argmin()
+    return array[idx]
 
 def from_LSL(mend = 999, mstart = 777):
-	markers = np.genfromtxt('./_markers.txt')
+	markers = np.genfromtxt('./_markers240_200.txt')
 
-	eeg = np.genfromtxt('./_data.txt')
+	eeg = np.genfromtxt('./_data240_200.txt')
 	# eeg[:,1:] = butter_filt(eeg[:,1:], (1,40))
+	max_inds  = get_maximums_from_eeg(eeg)
 
-	print np.shape(eeg)
 
 	aims = [int(a)-1 for a in np.genfromtxt('aims_play.txt')]
 
@@ -33,14 +72,24 @@ def from_LSL(mend = 999, mstart = 777):
 	mmm = np.logical_and(markers[:,1]!=mstart, markers [:,-1] !=mend)
 
 	markers =  markers[mmm]
-	print np.shape(markers)
 	letter_slices = [[] for a in range(np.shape(markers)[0])]
 	offsts = markers[:,0]
 	deltaof = offsts[1:] - offsts[:-1]
 	deltaof = deltaof[deltaof<1]
 
 
-	# plt.hist(deltaof)
+
+	NN = []
+	for a in markers[:,0]:
+		nn = find_nearest(max_inds, a)
+		NN.append(nn)
+	NN = np.array(NN)
+	deltas = NN - markers[:,0]
+	plt.plot(deltas - deltas[0], 'o')
+	plt.show()
+
+	# deltaof = np.round(deltaof, 3)
+	# plt.hist(deltaof, bins=15)
 	# plt.show()
 	# plt.clf()
 	# plt.plot(deltaof, 'o')
@@ -48,32 +97,21 @@ def from_LSL(mend = 999, mstart = 777):
 	# plt.clf()
 
 	sleeg = slice_eeg(offsts, eeg)
+	print np.shape(sleeg)
+
 	return sleeg
 
 def from_plain_eeg():
-	markers = np.genfromtxt('./_markers.txt')
-	eeg = np.genfromtxt('./_data.txt')
-	print np.shape(eeg)
-
-	aims = [int(a)-1 for a in np.genfromtxt('aims_play.txt')]
-
-	mmm = np.logical_and(markers[:,1]!=mstart, markers [:,-1] !=mend)
-
-	markers =  markers[mmm]
-	plt.plot(markers)
-	plt.show()
-
-	letter_slices = [[] for a in range(np.shape(markers)[0])]
-	offsts = markers[:,0]
-	deltaof = offsts[1:] - offsts[:-1]
-	deltaof = deltaof[deltaof<3]
-	# plt.plot(deltaof, 'o')
-	# plt.show()
-	sleeg = slice_eeg(offsts, eeg)
+	eeg = np.genfromtxt('./_data240_200.txt')
+	offs = np.array( range(0, np.shape(eeg)[0], 100))/1000 + eeg[0,0]
+	sleeg = slice_eeg(offs, eeg)
+	print np.shape(sleeg)
 	return sleeg
 
 
-slices = from_LSL()
+# slices = from_LSL()
+slices = from_plain_eeg()
+
 
 print np.shape(slices)
 plt.plot(slices.T)

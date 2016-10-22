@@ -34,7 +34,7 @@ class FFT_PLOT():
 		[self.axes[i].set_title(channels[i], fontweight= 'bold',) for i in range(len(self.axes))]
 		self.fig.canvas.draw()
 
-	def update_fft(self, FFT, averaging_bin=10):
+	def update_fft(self, FFT, averaging_bin=20):
 		''' receives FFT vector, trimmes it to several points (whth 500 hz refresh rate it is 60 hz maximum), redraws plot.'''
 		if not plt.fignum_exists(1): # dosent't try to update closed figure # careful with additional figures!
 			return
@@ -46,7 +46,7 @@ class FFT_PLOT():
 				self.fouriers.append(FFT)
 			else:
 				self.fouriers = np.array(self.fouriers)
-				self.sft = type(self.fouriers)
+				self.sft = type(self.fouriers) 
 		else:
 			# print np.shape(self.fouriers[0:-1])
 			self.fouriers[0:-1] = self.fouriers[1:]
@@ -221,5 +221,6 @@ def compute_fft(EEG_ARRAY,offset, sample_length = 1000):
 os.chdir(os.path.dirname(__file__)) 	# VLC PATH BUG ==> submit?
 
 if __name__ == '__main__':
-	Stream = EEG_STREAM( plot_fft = True, StreamMarkers = False, sample_length = 2000)
+	Stream = EEG_STREAM( plot_fft = True, StreamMarkers = False, sample_length = 2000, 
+						plot_to_second_screen = False)
 	Stream.plot_and_record()

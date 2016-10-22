@@ -254,7 +254,7 @@ class ENVIRONMENT():
 				deltaT = time.time() - tt
 				deltaT = "{0:2.0f}".format(round((deltaT*1000)- cycle_ms,2))
 				if abs(int(deltaT)) >7:
-					print 'danger: delta T is %s' % deltaT
+					print 'danger: delta T is %s \n' % deltaT
 				# print deltaT
 				deltalist[1:] = deltalist[0:-1]
 				deltalist[0] = deltaT
