@@ -24,6 +24,7 @@ class ENVIRONMENT():
 		self.stimcolor_p300 = [[self.rgb,self.rgb,self.rgb,self.rgb,self.rgb,self.rgb],['red', 'green', 'blue', 'pink', 'yellow', 'purple']]
 		self.stimcolor = ['white', 'white', 'white', 'white']
 		self.Fullscreen = False
+		self.photocell = False
 		self.window_size = (1920, 1080)
 		self.LEARN = True
 		self. time_4_one_letter = 6 #steadystate
@@ -93,6 +94,9 @@ class ENVIRONMENT():
 		if self.stimuli_number == 6:
 			self.cell5 = create_circle(4)
 			self.cell6 = create_circle(5)
+
+		
+
 		else:
 			self.cell5, self.cell6 = False, False
 		# Create fixation cross
@@ -115,10 +119,13 @@ class ENVIRONMENT():
 		if self.stimuli_number == 6:
 			self.cell5.pos = [-14, -8]
 			self.cell6.pos = [14, -8]
-			
+
 		self.cells = [self.cell1,self.cell2,self.cell3,self.cell4, self.cell5, self.cell6][0:self.stimuli_number]
 		self.p300_markers_on =  [[11], [22],[33],[44], [55], [66]]
 
+		if self.photocell == True:
+			self.cell_fd = create_circle(6)
+			self.cell_fd.pos = [0,0]
 
 
 
@@ -235,9 +242,12 @@ class ENVIRONMENT():
 			self.win.flip() # sycnhronize time.time() with first flip() => otherwise first interval seems longer.
 			tt = time.time()
 			for a in superseq:
+
+
 				self.cells[a].fillColor = self.stimcolor_p300[1][self.cells[a].name]
 				self.win.flip()
 				self.LSL.push_sample(self.p300_markers_on[a]) # push marker immdiately after first bit of the sequence
+				
 				## tried to sync _data and .easy files.
 				# dtm =  datetime.datetime.now()
 				# dtmint = int(time.mktime(dtm.timetuple())*1000 + dtm.microsecond/1000)
@@ -248,6 +258,8 @@ class ENVIRONMENT():
 
 				for b in seq[1:]:
 					self.cells[a].fillColor = self.stimcolor_p300[b][self.cells[a].name]
+					if self.photocell == True:
+						self.cell_fd.fillColor = ['black', 'white'][b]
 					self.win.flip()
 				
 				#acess timing accuracy
@@ -342,6 +354,7 @@ if __name__ == '__main__':
 
 	ENV = ENVIRONMENT(DEMO = True)
 	# ENV.Fullscreen = True
+	ENV.photocell = True
 	ENV.refresh_rate = 60
 	ENV.build_gui(monitor = mymon, rgb = ENV.rgb)
-	ENV.run_P300_exp()
+	ENV.run_P300_exp(waitforS = False)

@@ -104,6 +104,7 @@ class EEG_STREAM(object):
 				inlet_eeg = StreamInlet(streams_eeg[0])   
 				try:
 					inlet_eeg
+					# print inlet_eeg.info().as_xml()
 					print '...done \n'
 				except NameError:
 					print ("Error: Cannot conect to NIC stream\n")

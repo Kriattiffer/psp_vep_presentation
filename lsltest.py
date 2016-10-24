@@ -3,7 +3,7 @@ import time
 
 def create_lsl_outlet(name = 'CycleStart', DeviceMac = '00:07:80:64:EB:46'):
 	''' Create outlet for Enobio. Requires name of the stream (same as in NIC) and MAC adress of the device. Returns outlet object. Use by Outlet.push_sample([MARKER_INT])'''
-	info = StreamInfo(name,'Markers',1,0,'int32', DeviceMac)
+	info = StreamInfo(name,'sdfsdf','Markers',1,0,'int32', DeviceMac)
 	outlet =StreamOutlet(info)
 	return outlet
 
