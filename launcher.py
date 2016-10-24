@@ -23,8 +23,8 @@ def view():
 		print 'Using saved classifier from %s' % savedclass
 	else:
 		print 'Buildindg new classifier'
-	ENV.run_P300_exp(stim_duration_FRAMES = 10, ISI_FRAMES = 5, 
-					waitforS = False, repetitions=300)
+	ENV.run_P300_exp(stim_duration_FRAMES = 15, ISI_FRAMES = 5, 
+					waitforS = False, repetitions=100)
 	sys.stdout = open(str(os.getpid()) + ".out", "w") #MAGIC
 
 def rec():
@@ -55,4 +55,4 @@ if __name__ == '__main__':
 	pgui.start()
 	time.sleep(4)
 	print 'startig classifier...'
-	pclass.start()
+	# pclass.start()

@@ -7,6 +7,7 @@ import os
 def slice_eeg(offsets,eeg, sample_length = 200):
 	slices = [] 
 	for offset in offsets:
+		# print offset
 		ind = np.argmax(eeg[:,0] > offset) #+8
 		slice = eeg[ind:ind+sample_length,1]
 		# slice = slice - np.average(slice, axis = 0) #?
@@ -67,11 +68,9 @@ def find_nearest(array,value):
     return array[idx]
 
 def from_LSL(mend = 999, mstart = 777):
-	markers = np.genfromtxt('./_markers240_200.txt')
-
-
-
-	eeg = np.genfromtxt('./_data240_200.txt')
+	markers = np.genfromtxt(markersfile)
+	eeg = np.genfromtxt(datafile)
+	print np.shape(markers)
 	# eeg[:,1:] = butter_filt(eeg[:,1:], (1,40))
 	max_inds  = get_maximums_from_eeg(eeg)
 
@@ -99,16 +98,16 @@ def from_LSL(mend = 999, mstart = 777):
 	# plt.show()
 	# plt.clf()
 	print 'delta t markers'
-	plt.plot(deltaof*1000, 'o')
+	plt.plot(deltaof*1000, 'o-')
 	plt.show()
 
 	print 'delta t markers from 0'
-	deltamarkers = markers[:,0] - markers[0,0]
+	deltamarkers =( markers[:,0] - markers[0,0])
 	plt.plot(deltamarkers, 'o')
 	plt.show()
 
 	print 'delta t between markers and maximums'
-	plt.plot(deltas - deltas[0], 'o')
+	plt.plot((deltas - deltas[0])*1000, 'o')
 	plt.show()
 	# plt.clf()
 
@@ -118,31 +117,52 @@ def from_LSL(mend = 999, mstart = 777):
 	return sleeg
 
 def from_plain_eeg():
-	eeg = np.genfromtxt('./_data240_200.txt')
-	offs = np.array( range(0, np.shape(eeg)[0], 100))/1000 + eeg[0,0]
+	# eeg = np.genfromtxt('./_data240_200.txt')#[0:30000,:]
+	eeg = np.genfromtxt(datafile)#[0:30000,:]
+
+	# eeg = np.genfromtxt('./blink2.txt')
+
+	offs = np.array( range(0, np.shape(eeg)[0], 125))/500.0 + eeg[0,0]
 	sleeg = slice_eeg(offs, eeg)
 
 	max_inds  = get_maximums_from_eeg(eeg)
 	NN = []
 	for a in offs:
 		nn = find_nearest(max_inds, a)
+		# print a, nn, a-nn
 		NN.append(nn)
 	NN = np.array(NN)
-	deltas = NN - offs
-	plt.plot(deltas - deltas[0], 'o')
+	deltas = (NN - offs)*1000
+
+	eegtimings = eeg[1:,0] - eeg[0:-1,0]
+	eegtimings = np.round(eegtimings*1000, 8)
+	print 'delta t between eeg samples'
+
+	# plt.plot(eegtimings, 'o')
+	# plt.show()
+
+	print 'delta t between markers and maximums'
+	plt.plot((deltas - deltas[0])*1000, 'o')
 	plt.show()
 
 	print np.shape(sleeg)
 	return sleeg
 
 
-slices = from_LSL()
-# slices = from_plain_eeg()
 
 
-print np.shape(slices)
-plt.plot(slices.T)
-slices = np.average(slices, axis = 0)
-plt.plot(slices, linewidth = 6)
+if __name__ == '__main__':
+	
+	datafile = './_data.txt'
+	# markersfile = './_markers300.txt'
 
-plt.show()
+	# slices = from_LSL()
+	slices = from_plain_eeg()
+
+
+	print np.shape(slices)
+	plt.plot(slices.T)
+	slices = np.average(slices, axis = 0)
+	plt.plot(slices, linewidth = 6)
+
+	plt.show()
