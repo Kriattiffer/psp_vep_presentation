@@ -15,6 +15,8 @@ def view():
 	'''Create stimulation window'''
 	ENV = present.ENVIRONMENT()
 	ENV.Fullscreen = True
+	ENV.photocell = True
+
 	ENV.refresh_rate = 60
 	ENV.stimuli_number = 6
 	ENV.build_gui(monitor = present.mymon, rgb = ENV.rgb)
@@ -23,7 +25,7 @@ def view():
 		print 'Using saved classifier from %s' % savedclass
 	else:
 		print 'Buildindg new classifier'
-	ENV.run_P300_exp(stim_duration_FRAMES = 15, ISI_FRAMES = 5, 
+	ENV.run_P300_exp(stim_duration_FRAMES = 10, ISI_FRAMES = 5, 
 					waitforS = False, repetitions=100)
 	sys.stdout = open(str(os.getpid()) + ".out", "w") #MAGIC
 
@@ -55,4 +57,4 @@ if __name__ == '__main__':
 	pgui.start()
 	time.sleep(4)
 	print 'startig classifier...'
-	# pclass.start()
+	pclass.start()

@@ -213,10 +213,10 @@ class ENVIRONMENT():
 
 
 		if self.LEARN == True:
-			aims = [int(a)-1 for a in np.genfromtxt('aims_learn.txt')][0:1]
+			aims = [int(a)-1 for a in np.genfromtxt('aims_learn.txt')]
 			print aims
 		elif self.LEARN == False:
-			aims = [int(a) -1 for a in np.genfromtxt('aims_play.txt')][0:1]
+			aims = [int(a) -1 for a in np.genfromtxt('aims_play.txt')]
 			print aims
 
 		if waitforS == True:

@@ -4,12 +4,12 @@ from matplotlib import pyplot as plt
 from scipy import signal
 import os
 
-def slice_eeg(offsets,eeg, sample_length = 200):
+def slice_eeg(offsets,eeg, channel, sample_length = 200):
 	slices = [] 
 	for offset in offsets:
 		# print offset
 		ind = np.argmax(eeg[:,0] > offset) #+8
-		slice = eeg[ind:ind+sample_length,1]
+		slice = eeg[ind:ind+sample_length, channel]
 		# slice = slice - np.average(slice, axis = 0) #?
 		# slice = slice - slice[0,:] #?
 		
@@ -67,7 +67,8 @@ def find_nearest(array,value):
     idx = (np.abs(array-value)).argmin()
     return array[idx]
 
-def from_LSL(mend = 999, mstart = 777):
+def from_LSL(channel, mend = 999, mstart = 777):
+	'''1 for photodiode, 0 for neurotest'''
 	markers = np.genfromtxt(markersfile)
 	eeg = np.genfromtxt(datafile)
 	print np.shape(eeg)
@@ -113,16 +114,18 @@ def from_LSL(mend = 999, mstart = 777):
 	plt.show()
 	# plt.clf()
 
-	sleeg = slice_eeg(offsts, eeg)
+	sleeg = slice_eeg(offsts, eeg,channel)
 	print np.shape(sleeg)
 
 	return sleeg
 
-def from_plain_eeg():
-	eeg = np.genfromtxt(datafile)#[0:30000,:]
+def from_plain_eeg(channel):
+	'''1 for photodiode, 0 for neurotest'''
 
-	offs = np.array( range(0, np.shape(eeg)[0], 250))/1000.0 + eeg[0,0]
-	sleeg = slice_eeg(offs, eeg, sample_length = 250)
+	eeg = np.genfromtxt(datafile)#[20000:-20000,:]
+
+	offs = np.array( range(0, np.shape(eeg)[0]*2, 250))/1000.0 + eeg[0,0]
+	sleeg = slice_eeg(offs, eeg,channel)
 
 	# max_inds  = get_maximums_from_eeg(eeg)
 	# NN = []
@@ -152,11 +155,11 @@ def from_plain_eeg():
 
 if __name__ == '__main__':
 	
-	datafile = './_data240_200.txt'
-	markersfile = './_markers240_200.txt'
+	datafile = './_data.txt'
+	markersfile = './_markers.txt'
 
-	# slices = from_LSL()
-	slices = from_plain_eeg()
+	# slices = from_LSL(1)
+	slices = from_plain_eeg(1)
 
 
 	print np.shape(slices)
