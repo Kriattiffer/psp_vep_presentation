@@ -18,7 +18,6 @@ base_mseq = np.array(base_mseq, dtype = int)
 class ENVIRONMENT():
 	""" class for visual stimulation during the experiment """
 	def __init__(self, DEMO = False):
-		# self.input_p.close()
 
 		self.rgb = '#868686'
 		self.stimcolor_p300 = [[self.rgb,self.rgb,self.rgb,self.rgb,self.rgb,self.rgb],['red', 'green', 'blue', 'pink', 'yellow', 'purple']]
@@ -243,7 +242,6 @@ class ENVIRONMENT():
 			tt = time.time()
 			for a in superseq:
 
-
 				self.cells[a].fillColor = self.stimcolor_p300[1][self.cells[a].name]
 				self.win.flip()
 				self.LSL.push_sample(self.p300_markers_on[a]) # push marker immdiately after first bit of the sequence
@@ -260,6 +258,7 @@ class ENVIRONMENT():
 					self.cells[a].fillColor = self.stimcolor_p300[b][self.cells[a].name]
 					if self.photocell == True:
 						self.cell_fd.fillColor = ['black', 'white'][b]
+					
 					self.win.flip()
 				
 				#acess timing accuracy
@@ -296,7 +295,7 @@ class ENVIRONMENT():
 			while 's' not in event.getKeys(): # wait for S key to start
 				pass
 			print 'Online session started'
-
+			self.LSL.push_sample([999888])
 			self.run_P300_exp(stim_duration_FRAMES = stim_duration_FRAMES,
 							  ISI_FRAMES = ISI_FRAMES, repetitions =  repetitions,
 							  waitforS= waitforS)
@@ -337,7 +336,7 @@ def create_steady_state_sequences(freqs, refresh_rate = 120, limit_pulse_width =
 	return ss_seqs
 
 def create_lsl_outlet(name = 'CycleStart', DeviceMac = '00:07:80:64:EB:46'):
-	''' Create outlet for Enobio. Requires name of the stream (same as in NIC) and MAC adress of the device. Returns outlet object. Use by Outlet.push_sample([MARKER_INT])'''
+	''' Create outlet for Enobio. Requires name of the stream (same as in NIC) and maybe MAC adress of the device. Returns outlet object. Use by Outlet.push_sample([MARKER_INT])'''
 	info = StreamInfo(name,'Markers',1,0,'int32', DeviceMac)
 	outlet =StreamOutlet(info)
 	return outlet

@@ -12,14 +12,14 @@ from multiprocessing import Process
 class Classifier():
 	"""docstring for Classifier"""
 	def __init__(self, mapnames, online = False,
-				top_exp_length = 60, number_of_channels = 8+1, 
+				top_exp_length = 60, number_of_channels = 8, 
 				sampling_rate = 500, downsample_div = 10, saved_classifier = False):
 		
 		self.LEARN_BY_DELTAS = False
 		self.sampling_rate = sampling_rate
 		self.downsample_div = downsample_div
 		self.SPEAK =True
-		self.number_of_EEG_channels = number_of_channels-1
+		self.number_of_EEG_channels = number_of_channels
 		self.x_learn, self.y_learn = [], [] #lists of feature vectors and class labels for learning
 		self.mode = 'LEARN'
 
@@ -34,7 +34,7 @@ class Classifier():
 		self.learn_aims = np.genfromtxt('aims_learn.txt') -1
 		
 		record_length = 500*60*top_exp_length*1.2
-		array_shape = (record_length, number_of_channels)
+		array_shape = (record_length, number_of_channels+1)  # include timestamp channel
 		self.eegstream = np.memmap(mapnames['eeg'], dtype='float', mode='r', shape=(array_shape))
 		self.markerstream = np.memmap(mapnames['markers'], dtype='float', mode='r', shape=(500*60*1.2, 2))
 		self.im=self.create_stream() # LSL stream for markers
@@ -82,7 +82,7 @@ class Classifier():
 			# slices = slices - slices[:,:,0:1,:] # subtract 1st sample
 			return slices
 
-		EEG[:,1:] = butter_filt(EEG[:,1:], [1,20], fs = self.sampling_rate) # filter
+		# EEG[:,1:] = butter_filt(EEG[:,1:], [1,20], fs = self.sampling_rate) # filter
 		letters = [[] for a in codes]
 		letter_slices = [[] for a in codes]
 		for i,code in enumerate(codes):
@@ -196,6 +196,15 @@ class Classifier():
 	def plot_ep(self, x, y):
 		''' get arrays of feature vectors and class labels;
 			reshape them to lists of aim and non-aim epocs;	 plot averages for 8 channels '''
+		if self.number_of_EEG_channels ==8:
+			fig,axs = plt.subplots(nrows =3, ncols = 3)
+		elif self.number_of_EEG_channels ==20:
+			fig,axs = plt.subplots(nrows =4, ncols = 5)
+		else :
+			self.say_aloud(word = 'Too many 5 to plot.')
+		
+		channels = range(self.number_of_EEG_channels)
+
 		xaim =x[y==1]
 		xnonaim = x[y==0]
 		avgxaim = np.average(xaim, axis = 0)
@@ -204,11 +213,11 @@ class Classifier():
 		avgnonaim = np.split(avgxnonaim, self.number_of_EEG_channels)
 		avg_ep = [avgaim, avgnonaim]
 
-		fig,axs = plt.subplots(nrows =3, ncols = 3)
-		channels = ['Fz', 'Cz', 'P3', 'Pz', 'P4', 'PO7', 'PO8', 'Oz', 'HRz']
+
+		# channels = ['Fz', 'Cz', 'P3', 'Pz', 'P4', 'PO7', 'PO8', 'Oz', 'HRz']
 		for a in range(self.number_of_EEG_channels):
 			delta = avg_ep[0][a] - avg_ep[1][a]
-
+			
 			axs.flatten()[a].plot(range(len(delta)), avgaim[a]) # aim eps
 			axs.flatten()[a].plot(range(len(delta)), avgnonaim[a]) # non-aim eps
 			axs.flatten()[a].plot(range(len(delta)), delta, linewidth = 6) # delta
@@ -224,19 +233,23 @@ class Classifier():
 			learns LDA;	saves LDA model to disc;
 			sends packet to record.py process to allow start of online session with feedback
 		'''
-		self.plot_ep(x,y)
+		print '\nBuilding classifier...'
 		self.CLASSIFIER=LDA(solver = 'lsqr', shrinkage='auto')
 		self.CLASSIFIER.fit(x, y)
+		self.plot_ep(x,y)
 		print 'saving classifier...'
 		joblib.dump(self.CLASSIFIER, 'classifier_%i.cls' %(time.time()*1000)) 
 		print 'Starting online session'
 		self.sock.send('startonlinesession')
 		# self.validate_learning(x)
 
-	def say_aloud(self, ans, index):
-		word = ['red', 'green', 'blue', 'pink', 'yellow', 'purple'][index] # name of max-scored stimuli
-		if ans[index] == 0:
-			word = 'No command selected'
+	def say_aloud(self, ans = False, index = False, word = False):
+		if not word:
+			word = ['red', 'green', 'blue', 'pink', 'yellow', 'purple'][index] # name of max-scored stimuli
+			if ans[index] == 0:
+				word = 'No command selected'
+		else:
+			pass
 		try:
 			subprocess.call(['C:\\Program Files (x86)\\eSpeak\\command_line\\espeak.exe', word])
 		except WindowsError:

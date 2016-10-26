@@ -7,9 +7,9 @@ import classify
 
 mapnames = {'eeg':'eegdata.mmap', 'markers':'markers.mmap'}
 top_exp_length = 60
-number_of_channels = 9
+number_of_channels = 20
 savedclass = False
-savedclass = 'classifier_1476717624752.cls'
+# savedclass = 'classifier_1476717624752.cls'
 
 def view():
 	'''Create stimulation window'''
@@ -26,7 +26,7 @@ def view():
 	else:
 		print 'Buildindg new classifier'
 	ENV.run_P300_exp(stim_duration_FRAMES = 10, ISI_FRAMES = 5, 
-					waitforS = False, repetitions=100)
+					waitforS = False, repetitions=2)
 	sys.stdout = open(str(os.getpid()) + ".out", "w") #MAGIC
 
 def rec():

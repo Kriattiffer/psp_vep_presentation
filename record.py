@@ -34,7 +34,7 @@ class FFT_PLOT():
 		[self.axes[i].set_title(channels[i], fontweight= 'bold',) for i in range(len(self.axes))]
 		self.fig.canvas.draw()
 
-	def update_fft(self, FFT, averaging_bin=20):
+	def update_fft(self, FFT, averaging_bin=10):
 		''' receives FFT vector, trimmes it to several points (whth 500 hz refresh rate it is 60 hz maximum), redraws plot.'''
 		if not plt.fignum_exists(1): # dosent't try to update closed figure # careful with additional figures!
 			return
@@ -68,7 +68,7 @@ class FFT_PLOT():
 class EEG_STREAM(object):
 	""" class for EEG\markers streaming, plotting and recording. """
 	def __init__(self,  mapnames = {'eeg':'eegdata.mmap', 'markers':'markers.mmap'}, 
-				sample_length = 1000, top_exp_length = 60, number_of_channels = 9,
+				sample_length = 1000, top_exp_length = 60, number_of_channels = 8,
 	 			StreamEeg = True, StreamMarkers = True, plot_fft = True, plot_to_second_screen = True):
 		''' create objects for later use'''
 		self.StreamEeg, self.StreamMarkers = StreamEeg, StreamMarkers
@@ -76,7 +76,7 @@ class EEG_STREAM(object):
 		self.stop = False  # set EEG_STREAM.stop to 1 to flush arrays to disc. This variable is also used to choose the exact time to stop record.
 		self.ie, self.im =  self.create_streams()
 		
-		self.EEG_ARRAY = self.create_array(mmapname=mapnames['eeg'], top_exp_length = top_exp_length, number_of_channels = number_of_channels)
+		self.EEG_ARRAY = self.create_array(mmapname=mapnames['eeg'], top_exp_length = top_exp_length, number_of_channels = number_of_channels+1)
 		self.MARKER_ARRAY = self.create_array(mmapname=mapnames['markers'], top_exp_length = 1, number_of_channels = 2)
 		self.line_counter = 0
 		self.line_counter_mark = 0
