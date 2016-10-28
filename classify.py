@@ -1,3 +1,4 @@
+# todo: choose channels for building classifier
 import numpy as np
 import os, sys, time, warnings
 from matplotlib import pyplot  as plt 
@@ -12,14 +13,15 @@ from multiprocessing import Process
 class Classifier():
 	"""docstring for Classifier"""
 	def __init__(self, mapnames, online = False,
-				top_exp_length = 60, number_of_channels = 8, 
-				sampling_rate = 500, downsample_div = 10, saved_classifier = False):
+				top_exp_length = 60, number_of_channels = 8, classifier_channels = range(8),
+				sampling_rate = 500, downsample_div = 19, saved_classifier = False):
 		
 		self.LEARN_BY_DELTAS = False
 		self.sampling_rate = sampling_rate
 		self.downsample_div = downsample_div
 		self.SPEAK =True
 		self.number_of_EEG_channels = number_of_channels
+		self.channel_names = range(self.number_of_EEG_channels)
 		self.x_learn, self.y_learn = [], [] #lists of feature vectors and class labels for learning
 		self.mode = 'LEARN'
 
@@ -77,25 +79,24 @@ class Classifier():
 			slices = slices[:,:,::self.downsample_div,:] #downsample  
 			return slices
 
-		def subtrfirst(slices):
-			'''Make all epocs start from zero'''
-			# slices = slices - slices[:,:,0:1,:] # subtract 1st sample
-			return slices
+		def filter_eeg(EEG, frequencies = [1,20]):
+			EEG[:,1:] = butter_filt(EEG[:,1:], frequencies, fs = self.sampling_rate) # filter
+			return EEG
 
-		# EEG[:,1:] = butter_filt(EEG[:,1:], [1,20], fs = self.sampling_rate) # filter
+		EEG = filter_eeg(EEG)
+
 		letters = [[] for a in codes]
 		letter_slices = [[] for a in codes]
 		for i,code in enumerate(codes):
 			offs = MARKERS[MARKERS[:,1]==code][:,0]
 			letters[i] = offs
 			for off in offs:
-				eegs = EEG[np.logical_and((EEG[:,0]*1000>off*1000), (EEG[:,0]*1000<(off*1000+self.sampling_rate*2))),1:] # create 1-second epocs for each letter
+				eegs = EEG[np.logical_and(  (EEG[:,0]*1000>off*1000), 
+											(EEG[:,0]*1000<(off*1000+self.sampling_rate*2))),1:] # create 1-second epocs for each letter
 				eegs = eegs - eegs[0,:] # make all slices start from 0
 				letter_slices[i].append(eegs)
 		letter_slices = np.array(letter_slices)
 		letter_slices = downsample(letter_slices)
-		letter_slices = subtrfirst(letter_slices)
-
 		return letter_slices
 
 	def create_feature_vectors(self, letter_slices):
@@ -104,7 +105,7 @@ class Classifier():
 			In play mode  returns array of arrays of feature vectors for every stimuli '''
 		shp = np.shape(letter_slices)
 		lttrs = range(shp[0])
-		
+
 		if self.mode == 'PLAY':
 			xes = [[] for a in lttrs]
 			for letter in lttrs:
@@ -113,7 +114,7 @@ class Classifier():
 				# non_aims = letter_slices[[a for a in lttrs if a != letter]].reshape((shp[0]-1)*shp[1], shp[2], shp[3])
 				# shpn= np.shape(non_aims)
 				
-				aim_feature_vectors = aims.reshape(shpa[0], shpa[1]*shpa[2])
+				aim_feature_vectors = aims.reshape(shpa[0], shpa[1]*shpa[2], order = 'F')
 				# non_aim_feature_vectors = non_aims.reshape(shpn[0], shpn[1]*shpn[2])
 				if self.LEARN_BY_DELTAS == True:
 					pass
@@ -128,11 +129,14 @@ class Classifier():
 			aim_let = int(self.learn_aims[self.letter_counter])
 			# print aim_let
 			aims = letter_slices[lttrs[aim_let],:,:,:]
-			shpa= np.shape(aims)
 			non_aims = letter_slices[[a for a in lttrs if a != aim_let]].reshape((shp[0]-1)*shp[1], shp[2], shp[3])
-			aim_feature_vectors = aims.reshape(shpa[0], shpa[1]*shpa[2])
+			
+			shpa= np.shape(aims)
 			shpn= np.shape(non_aims)
-			non_aim_feature_vectors = non_aims.reshape(shpn[0], shpn[1]*shpn[2])
+
+			aim_feature_vectors = aims.reshape(shpa[0], shpa[1]*shpa[2], order = 'F') # usage of Fortran-like order is critical for plotting, although it dosen't really matter for classification
+			non_aim_feature_vectors = non_aims.reshape(shpn[0], shpn[1]*shpn[2], order = 'F')
+			
 			if self.LEARN_BY_DELTAS == True:
 				pass
 			x = np.concatenate((aim_feature_vectors, non_aim_feature_vectors), axis = 0)
@@ -203,7 +207,6 @@ class Classifier():
 		else :
 			self.say_aloud(word = 'Too many 5 to plot.')
 		
-		channels = range(self.number_of_EEG_channels)
 
 		xaim =x[y==1]
 		xnonaim = x[y==0]
@@ -222,7 +225,7 @@ class Classifier():
 			axs.flatten()[a].plot(range(len(delta)), avgnonaim[a]) # non-aim eps
 			axs.flatten()[a].plot(range(len(delta)), delta, linewidth = 6) # delta
 			axs.flatten()[a].plot(range(len(delta)), np.zeros(np.shape(delta))) #baseline
-			axs.flatten()[a].set_title(channels[a])
+			axs.flatten()[a].set_title(self.channel_names[a])
 		print 'averaged EP: N_aim=%i, N_nonaim=%i' % (sum(y==1), sum(y==0))
 		plt.show()
 
@@ -233,7 +236,7 @@ class Classifier():
 			learns LDA;	saves LDA model to disc;
 			sends packet to record.py process to allow start of online session with feedback
 		'''
-		print '\nBuilding classifier...'
+		print '\nBuilding classifier for ...'
 		self.CLASSIFIER=LDA(solver = 'lsqr', shrinkage='auto')
 		self.CLASSIFIER.fit(x, y)
 		self.plot_ep(x,y)

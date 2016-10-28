@@ -1,4 +1,7 @@
 # test classifier on publically availible P300 datasets
+import sys
+sys.path.append('..')
+
 import numpy as np
 import scipy.io
 from record import butter_filt

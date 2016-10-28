@@ -8,6 +8,7 @@ import classify
 mapnames = {'eeg':'eegdata.mmap', 'markers':'markers.mmap'}
 top_exp_length = 60
 number_of_channels = 20
+classifier_channels = range(8)
 savedclass = False
 # savedclass = 'classifier_1476717624752.cls'
 
@@ -26,7 +27,7 @@ def view():
 	else:
 		print 'Buildindg new classifier'
 	ENV.run_P300_exp(stim_duration_FRAMES = 10, ISI_FRAMES = 5, 
-					waitforS = False, repetitions=2)
+					waitforS = False, repetitions=3)
 	sys.stdout = open(str(os.getpid()) + ".out", "w") #MAGIC
 
 def rec():
@@ -40,7 +41,8 @@ def class_():
 	'''Create classifer class and wait for markers from present.py'''
 	CLSF = classify.Classifier(mapnames = mapnames, online = True,
 									top_exp_length = top_exp_length, 
-									number_of_channels = number_of_channels, 
+									number_of_channels = number_of_channels,
+									classifier_channels = classifier_channels, 
 									saved_classifier = savedclass)
 	CLSF.mainloop()
 	sys.stdout = open(str(os.getpid()) + ".out", "w")

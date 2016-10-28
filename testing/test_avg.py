@@ -1,3 +1,5 @@
+import sys
+sys.path.append('..')
 import numpy as np
 from record import butter_filt
 from matplotlib import pyplot as plt
@@ -155,8 +157,8 @@ def from_plain_eeg(channel):
 
 if __name__ == '__main__':
 	
-	datafile = './_data.txt'
-	markersfile = './_markers.txt'
+	datafile = "./_data/2510_squares/_data_800_2channels.txt"
+	markersfile = "./_data/2510_squares/_markers_800_2channels.txt"
 
 	# slices = from_LSL(1)
 	slices = from_plain_eeg(1)

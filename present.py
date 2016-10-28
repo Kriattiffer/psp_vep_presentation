@@ -20,7 +20,9 @@ class ENVIRONMENT():
 	def __init__(self, DEMO = False):
 
 		self.rgb = '#868686'
-		self.stimcolor_p300 = [[self.rgb,self.rgb,self.rgb,self.rgb,self.rgb,self.rgb],['red', 'green', 'blue', 'pink', 'yellow', 'purple']]
+		# self.stimcolor_p300 = [[self.rgb,self.rgb,self.rgb,self.rgb,self.rgb,self.rgb],['red', 'green', 'blue', 'pink', 'yellow', 'purple']]
+		self.stimcolor_p300 = [[self.rgb,self.rgb,self.rgb,self.rgb,self.rgb,self.rgb],['white', 'white', 'white', 'white', 'white', 'white']]
+		
 		self.stimcolor = ['white', 'white', 'white', 'white']
 		self.Fullscreen = False
 		self.photocell = False
