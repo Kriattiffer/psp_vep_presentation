@@ -13,15 +13,25 @@ from multiprocessing import Process
 class Classifier():
 	"""docstring for Classifier"""
 	def __init__(self, mapnames, online = False,
-				top_exp_length = 60, number_of_channels = 8, classifier_channels = range(8),
-				sampling_rate = 500, downsample_div = 19, saved_classifier = False):
+				top_exp_length = 60, number_of_channels = 8, classifier_channels = [],
+				sampling_rate = 500, downsample_div = 10, saved_classifier = False):
 		
 		self.LEARN_BY_DELTAS = False
 		self.sampling_rate = sampling_rate
 		self.downsample_div = downsample_div
 		self.SPEAK =True
+
 		self.number_of_EEG_channels = number_of_channels
 		self.channel_names = range(self.number_of_EEG_channels)
+		
+		if classifier_channels == []:
+			self.classifier_channels = range(number_of_channels)
+		else:
+			assert (len(classifier_channels)<= number_of_channels), 'number of classifier channels cannot be larger then total number of channels' 
+			assert not bool(sum([a >=number_of_channels for a in classifier_channels])), 'some classifier channels are not present in the data'
+			assert len(classifier_channels) == len(set(classifier_channels)), 'there are duplicates in classifier channels'
+			self.classifier_channels = classifier_channels
+
 		self.x_learn, self.y_learn = [], [] #lists of feature vectors and class labels for learning
 		self.mode = 'LEARN'
 
@@ -53,7 +63,7 @@ class Classifier():
 			print 'exiting'
 			sys.exit()
 			inlet_markers = []
-
+			
 		print ("Classifier connecting to markers stream...")
 		# inlet for markers
 		if stream_name_markers in [stream.name() for stream in resolve_stream()]:
@@ -193,6 +203,13 @@ class Classifier():
 		y = np.array(self.y_learn).flatten()
 		return x, y
 
+	def select_x_channels(self,x):
+	 	ch_length = np.shape(x)[1]/self.number_of_EEG_channels
+	 	indlist = sum([range(ch_length*chnl,ch_length*(chnl+1))  for chnl in self.classifier_channels], [])
+	 	x =  x[:, indlist]
+	 	print 'building classifier on '+ str(np.shape(x)) + ' shaped array'
+		return x
+
 	def validate_learning(self,x):
 			print self.CLASSIFIER.predict(x)
 			pass
@@ -200,14 +217,13 @@ class Classifier():
 	def plot_ep(self, x, y):
 		''' get arrays of feature vectors and class labels;
 			reshape them to lists of aim and non-aim epocs;	 plot averages for 8 channels '''
-		if self.number_of_EEG_channels ==8:
+		if self.number_of_EEG_channels <=8:
 			fig,axs = plt.subplots(nrows =3, ncols = 3)
-		elif self.number_of_EEG_channels ==20:
+		elif self.number_of_EEG_channels >=9:
 			fig,axs = plt.subplots(nrows =4, ncols = 5)
 		else :
 			self.say_aloud(word = 'Too many 5 to plot.')
 		
-
 		xaim =x[y==1]
 		xnonaim = x[y==0]
 		avgxaim = np.average(xaim, axis = 0)
@@ -216,9 +232,8 @@ class Classifier():
 		avgnonaim = np.split(avgxnonaim, self.number_of_EEG_channels)
 		avg_ep = [avgaim, avgnonaim]
 
-
 		# channels = ['Fz', 'Cz', 'P3', 'Pz', 'P4', 'PO7', 'PO8', 'Oz', 'HRz']
-		for a in range(self.number_of_EEG_channels):
+		for a in range((self.number_of_EEG_channels)):
 			delta = avg_ep[0][a] - avg_ep[1][a]
 			
 			axs.flatten()[a].plot(range(len(delta)), avgaim[a]) # aim eps
@@ -233,12 +248,12 @@ class Classifier():
 	def learn_LDA(self, x, y):
 		''' gets list of feature vectors and their class labels;
 			plots ERPs;
-			learns LDA;	saves LDA model to disc;
+			learns LDA;	saves LDA model to disk;
 			sends packet to record.py process to allow start of online session with feedback
 		'''
 		print '\nBuilding classifier for ...'
 		self.CLASSIFIER=LDA(solver = 'lsqr', shrinkage='auto')
-		self.CLASSIFIER.fit(x, y)
+		self.CLASSIFIER.fit(self.select_x_channels(x), y)
 		self.plot_ep(x,y)
 		print 'saving classifier...'
 		joblib.dump(self.CLASSIFIER, 'classifier_%i.cls' %(time.time()*1000)) 

@@ -241,9 +241,9 @@ class ENVIRONMENT():
 				self.exit_()
 
 			self.win.flip() # sycnhronize time.time() with first flip() => otherwise first interval seems longer.
+			
 			tt = time.time()
 			for a in superseq:
-
 				self.cells[a].fillColor = self.stimcolor_p300[1][self.cells[a].name]
 				self.win.flip()
 				self.LSL.push_sample(self.p300_markers_on[a]) # push marker immdiately after first bit of the sequence
@@ -254,7 +254,6 @@ class ENVIRONMENT():
 				# dtmint = dtmint - (dtmint/1000000)*1000000 +  self.p300_markers_on[a][0]*1000000
 				# print int(time.mktime(dtm.timetuple())*1000 + dtm.microsecond/1000)
 				# self.LSL.push_sample([dtmint]) # push marker immdiately after first bit of the sequence; first digit is the number, other  - tail of Unix Time
-
 
 				for b in seq[1:]:
 					self.cells[a].fillColor = self.stimcolor_p300[b][self.cells[a].name]
