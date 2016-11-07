@@ -86,7 +86,8 @@ class ENVIRONMENT():
 		self.win = visual.Window(fullscr = self.Fullscreen, 
 							rgb = '#868686',
 							size = self.window_size,	
-							monitor = monitor
+							monitor = monitor,
+							screen = 1 # 1 - primary, else - secondary
 							)
 
 		# Crete stimuli
