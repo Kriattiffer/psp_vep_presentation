@@ -1,10 +1,10 @@
+# -*- coding: utf-8 -*- 
+
 from iViewXAPI import  *            			#iViewX library
 from ctypes import *
-import time
+import time, sys
 from pylsl import StreamInlet, resolve_stream
 
-host_ip = '192.168.0.2'
-server_ip = '192.168.0.3'
 
 
 def create_stream(stream_name_markers = 'CycleStart', recursion_meter = 0, max_recursion_depth = 3):
@@ -16,8 +16,7 @@ def create_stream(stream_name_markers = 'CycleStart', recursion_meter = 0, max_r
             recursion_meter +=1
         else:
             print 'exiting'
-            sys.exit()
-            inlet_markers = []
+            return None
             
         print ("Eyetracker connecting to markers stream...")
         # inlet for markers
@@ -29,52 +28,89 @@ def create_stream(stream_name_markers = 'CycleStart', recursion_meter = 0, max_r
                 print '...done \n'
             except NameError:
                 print ("Error: Eyetracker cannot conect to markers stream\n")
-                sys.exit()
+                return None
         else:
             print 'Error: markers stream is not available\n'
             return create_stream(stream_name_markers,recursion_meter)
         return inlet_markers
 
-def send_marker_to_iViewX(marker):
-    res = iViewXAPI.iV_SendImageMessage(marker)
-    if str(res) !='1':
-        print "iV_SendImageMessage " + str(res)
 
-def main():
-    im = create_stream()
-    for a in range(10):
-        marker, timestamp_mark = im.pull_sample()
-        IDF_marker =  str([marker, timestamp_mark])
-        send_marker_to_iViewX(IDF_marker)
+class Eyetracker():
+    """docstring for Eyetracker"""
+    def __init__(self, debug = False):
+        self.im  = create_stream()
+        self.host_ip = '192.168.0.2'
+        self.server_ip = '192.168.0.3'
+        if not self.im:
+            print debug
+            if debug != True:
+                self.exit_()
 
-# ---------------------------------------------
-#---- connect to iView
-# ---------------------------------------------
+    def  calibrate(self):
+        '''configure and start calibration'''
 
-# res = iViewXAPI.iV_SetLogger(c_int(1), c_char_p("iViewXSDK_Python_GazeContingent_Demo.txt"))
-res = iViewXAPI.iV_Connect(c_char_p(host_ip), c_int(4444), c_char_p(server_ip), c_int(5555))
-res = iViewXAPI.iV_GetSystemInfo(byref(systemData))
+        numberofPoints = 9
+        displayDevice = 0 # 0 - primary, 1- secondary
+        pointBrightness = 250
+        backgroundBrightnress = 50
+        targetFile = b""
+        calibrationSpeed = 0 # slow
+        autoAccept  = 2 # 0 = auto, 1 = semi-auto, 2 = auto 
+        targetShape = 1 # 0 = image, 1 = circle1, 2 = circle2, 3 = cross
+        targetSize = 20
+        WTF = 1 #do not touch -- preset?
 
-# ---------------------------------------------
-#---- configure and start calibration
-# ---------------------------------------------
+        calibrationData = CCalibration(numberofPoints, WTF, displayDevice, 
+                                        calibrationSpeed, autoAccept, pointBrightness,
+                                        backgroundBrightnress, targetShape, targetSize, targetFile)
 
-displayDevice = 0
-calibrationData = CCalibration(2, 1, displayDevice, 0, 1, 20, 239, 1, 10, b"")
+        self.res = iViewXAPI.iV_SetupCalibration(byref(calibrationData))
+        print "iV_SetupCalibration " + str(self.res)
+        self.res = iViewXAPI.iV_Calibrate()
+        print   "iV_Calibrate " + str(self.res)
 
-res = iViewXAPI.iV_SetupCalibration(byref(calibrationData))
-print "iV_SetupCalibration " + str(res)
-res = iViewXAPI.iV_Calibrate()
-print   "iV_Calibrate " + str(res)
-# res = iViewXAPI.iV_Validate()
-# print "iV_Validate " + str(res)
-res = iViewXAPI.iV_StartRecording ()
-print "iV_record " + str(res)
+    
+    def validate(self):
+        self.res = iViewXAPI.iV_Validate()
+        print "iV_Validate " + str(self.res)
+    
+    def connect_to_iView(self):
+        self.res = iViewXAPI.iV_Connect(c_char_p(self.host_ip), c_int(4444), c_char_p(self.server_ip), c_int(5555))
+        self.res = iViewXAPI.iV_GetSystemInfo(byref(systemData))
+        print "iV_sysinfo " + str(self.res)
 
-main()
+    def send_marker_to_iViewX(self, marker):
+        res = iViewXAPI.iV_SendImageMessage(marker)
+        if str(self.res) !='1':
+            print "iV_SendImageMessage " + str(self.res)
+    
+    def mainloop(self):
+        self.res = iViewXAPI.iV_StartRecording ()
+        print "iV_record " + str(self.res)
+        for a in range(10):
+            marker, timestamp_mark = self.im.pull_sample()
+            IDF_marker =  str([marker, timestamp_mark])
+            self.send_marker_to_iViewX(IDF_marker)
+
+    def main(self):
+        self.connect_to_iView()
+        self.calibrate()
+        self.validate()
+        self.mainloop()
 
 
-res = iViewXAPI.iV_StopRecording()
-res1 = iViewXAPI.iV_SaveData('test_test', '2', '3', 1)
-print "iV_SaveData" + str(res1)
-res = iViewXAPI.iV_Disconnect()
+    def exit_(self):
+        self.res = iViewXAPI.iV_StopRecording()
+        self.res = iViewXAPI.iV_SaveData('test_test', '2', '3', 1)
+        print "iV_SaveData" + str(self.res)
+        self.res = iViewXAPI.iV_Disconnect()
+        sys.exit()
+
+
+
+if __name__ == '__main__':
+    
+    RED = Eyetracker(debug = True)
+    RED.main()
+
+

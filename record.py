@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*- 
+
 from pylsl import StreamInlet, resolve_stream
 from matplotlib import pyplot as plt
 from scipy import signal

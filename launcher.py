@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*- 
+
 import multiprocessing, sys, os, time
 from tempfile import mkdtemp
 import numpy as np

@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*- 
+
 import os, sys, time, socket, random, datetime, socket
 from psychopy import visual, core, event, monitors
 from pylsl import StreamInfo, StreamOutlet

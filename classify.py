@@ -1,4 +1,5 @@
-# todo: choose channels for building classifier
+# -*- coding: utf-8 -*- 
+
 import numpy as np
 import os, sys, time, warnings
 from matplotlib import pyplot  as plt 

@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*- 
+
 import numpy as np
 from record import butter_filt
 from matplotlib import pyplot as plt

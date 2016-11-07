@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*- 
+
 # Runs on SMI server laptop
 
 from pylsl import StreamInlet, StreamOutlet, StreamInfo, resolve_stream
