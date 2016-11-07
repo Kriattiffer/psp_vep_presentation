@@ -15,7 +15,7 @@ def create_stream(stream_name_markers = 'CycleStart', recursion_meter = 0, max_r
             print 'Trying to reconnect for the %i time \n' % (recursion_meter+1)
             recursion_meter +=1
         else:
-            print 'exiting'
+            print ("Error: Eyetracker cannot conect to markers stream\n")
             return None
             
         print ("Eyetracker connecting to markers stream...")
@@ -49,13 +49,13 @@ class Eyetracker():
     def  calibrate(self):
         '''configure and start calibration'''
 
-        numberofPoints = 9
+        numberofPoints = 9 # can be 2, 5 and 9
         displayDevice = 0 # 0 - primary, 1- secondary
         pointBrightness = 250
         backgroundBrightnress = 50
         targetFile = b""
         calibrationSpeed = 0 # slow
-        autoAccept  = 2 # 0 = auto, 1 = semi-auto, 2 = auto 
+        autoAccept  = 1 # 0 = auto, 1 = semi-auto, 2 = auto 
         targetShape = 1 # 0 = image, 1 = circle1, 2 = circle2, 3 = cross
         targetSize = 20
         WTF = 1 #do not touch -- preset?
@@ -73,11 +73,15 @@ class Eyetracker():
     def validate(self):
         self.res = iViewXAPI.iV_Validate()
         print "iV_Validate " + str(self.res)
-    
+        self.res = iViewXAPI.iV_ShowAccuracyMonitor ( )
+        self.res = iViewXAPI.iV_ShowEyeImageMonitor ( )
+        while 1:
+            pass
+
     def connect_to_iView(self):
         self.res = iViewXAPI.iV_Connect(c_char_p(self.host_ip), c_int(4444), c_char_p(self.server_ip), c_int(5555))
-        self.res = iViewXAPI.iV_GetSystemInfo(byref(systemData))
-        print "iV_sysinfo " + str(self.res)
+        # self.res = iViewXAPI.iV_GetSystemInfo(byref(systemData))
+        # print "iV_sysinfo " + str(self.res)
 
     def send_marker_to_iViewX(self, marker):
         res = iViewXAPI.iV_SendImageMessage(marker)
@@ -87,6 +91,10 @@ class Eyetracker():
     def mainloop(self):
         self.res = iViewXAPI.iV_StartRecording ()
         print "iV_record " + str(self.res)
+        if not self.im:
+            print 'LSL socket is Nonetype, exiting'
+            self.exit_()
+
         for a in range(10):
             marker, timestamp_mark = self.im.pull_sample()
             IDF_marker =  str([marker, timestamp_mark])
@@ -100,9 +108,16 @@ class Eyetracker():
 
 
     def exit_(self):
+        time.sleep(3)
         self.res = iViewXAPI.iV_StopRecording()
-        self.res = iViewXAPI.iV_SaveData('test_test', '2', '3', 1)
-        print "iV_SaveData" + str(self.res)
+
+        user = '1'
+        filename = r'C:\Users\iView X\Documents\SMI_BCI_Experiments/' + user + str(time.time())
+        self.res = iViewXAPI.iV_SaveData(filename, 'description', user, 1) # filename, description, user, owerwrite
+        if self.res == 1:
+            print 'Eyatracking data saved fo %s.idf' % filename
+        else:
+            print "iV_SaveData " + str(self.res)
         self.res = iViewXAPI.iV_Disconnect()
         sys.exit()
 
