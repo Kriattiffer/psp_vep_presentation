@@ -12,24 +12,24 @@ top_exp_length = 60
 number_of_channels = 8
 classifier_channels = []
 savedclass = False
-# savedclass = 'classifier_1476717624752.cls'
+# savedclass = 'classifier_1478677771640.cls'
 
 def view():
 	'''Create stimulation window'''
-	ENV = present.ENVIRONMENT()
-	ENV.Fullscreen = True
-	ENV.photocell = True
+	ENV = present.ENVIRONMENT(config = './config_letters.bcicfg')
+	ENV.Fullscreen = False 	
+	# ENV.photocell = True
 
-	ENV.refresh_rate = 60
-	ENV.stimuli_number = 6
-	ENV.build_gui(monitor = present.mymon, rgb = ENV.rgb)
+	ENV.refresh_rate = 60	 
+	ENV.build_gui(stimuli_number = 12,
+					monitor = present.mymon)
 	if savedclass:
 		ENV.LEARN = False
 		print 'Using saved classifier from %s' % savedclass
 	else:
 		print 'Buildindg new classifier'
 	ENV.run_P300_exp(stim_duration_FRAMES = 10, ISI_FRAMES = 5, 
-					waitforS = False, repetitions=2)
+					waitforS = False, repetitions=10)
 	sys.stdout = open(str(os.getpid()) + ".out", "w") #MAGIC
 
 def rec():

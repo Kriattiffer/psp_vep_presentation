@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*- 
 
-import os, sys, time, socket, random, datetime, socket
+import os, sys, time, socket, random, datetime, socket, ast
 from psychopy import visual, core, event, monitors
 from pylsl import StreamInfo, StreamOutlet
 import numpy as np
@@ -19,21 +19,26 @@ base_mseq = np.array(base_mseq, dtype = int)
 
 class ENVIRONMENT():
 	""" class for visual stimulation during the experiment """
-	def __init__(self, DEMO = False):
+	def __init__(self, DEMO = False, config = './config_circles.bcicfg'):
 
-		self.rgb = '#868686'
-		# self.stimcolor_p300 = [[self.rgb,self.rgb,self.rgb,self.rgb,self.rgb,self.rgb],['red', 'green', 'blue', 'pink', 'yellow', 'purple']]
-		self.stimcolor_p300 = [[self.rgb,self.rgb,self.rgb,self.rgb,self.rgb,self.rgb],['white', 'white', 'white', 'white', 'white', 'white']]
-		
-		self.stimcolor = ['white', 'white', 'white', 'white']
+		self.background = '#868686'
+
 		self.Fullscreen = False
 		self.photocell = False
 		self.window_size = (1920, 1080)
 		self.LEARN = True
-		self. time_4_one_letter = 6 #steadystate
-		self.stimuli_number = 6		
 		self.number_of_inputs = 12
 		self.refresh_rate = 120
+
+		try:
+			self.config =  ast.literal_eval(open(config).read())
+		except Exception, e:
+			print 'Problem with config file:'
+			print e
+			self.exit_()
+
+		self.stimcolor = ['white', 'white', 'white', 'white'] #steadystate
+		self. time_4_one_letter = 6 #steadystate
 
 		if DEMO == True:
 			self.LSL, self.conn = self.fake_lsl_and_conn()
@@ -64,45 +69,40 @@ class ENVIRONMENT():
 				
 
 
-	def build_gui(self, monitor = mymon,
-	 			  rgb = '#868686', stimrad = 2, fix_size = 1):
+	def build_gui(self, stimuli_number = 6, 
+					monitor = mymon, fix_size = 1):
 		''' function for creating visual enviroment. Input: various parameters of stimuli, all optional'''
 		
-
-		def create_circle(i):
-			''' Call this to create identical circles, posing as stimulis'''
-			circ = visual.Circle(self.win,
-								radius=stimrad,
-								lineColor = None, 
-								fillColor = rgb,#self.stimcolor[i],
-								units = 'deg',
-								autoDraw=True,
-								# autoLog=True,
-								name=i
-								)
-			return circ
-
+		self.stimuli_indices = range(stimuli_number)
+		
+		self.active_stims = []
+		self.non_active_stims = []
 		# Create window
 		self.win = visual.Window(fullscr = self.Fullscreen, 
-							rgb = '#868686',
+							rgb = self.background,
 							size = self.window_size,	
 							monitor = monitor,
 							screen = 1 # 1 - primary, else - secondary
 							)
 
-		# Crete stimuli
-		self.cell1 = create_circle(0) 
-		self.cell2 = create_circle(1)
-		self.cell3 = create_circle(2)
-		self.cell4 = create_circle(3)
-		if self.stimuli_number == 6:
-			self.cell5 = create_circle(4)
-			self.cell6 = create_circle(5)
+		# read image from rescources dir and crate ImageStim objects
+		stimpics = os.listdir(self.config['stimuli_dir'])
+		for pic in stimpics:
+			name = int(pic.split('_')[1])
+			pic = os.path.join(self.config['stimuli_dir'], pic)
+			if name in self.stimuli_indices:
+				stim = visual.ImageStim(self.win, image=pic,
+										 name = name,
+										size = 4, units = 'deg')
+				if 'non_active' not in pic:
+					self.active_stims.append(stim)
+				else:
+					self.non_active_stims.append(stim)
+			else:
+				pass
+		self.active_stims  = self.active_stims
+		self.non_active_stims  = self.non_active_stims
 
-		
-
-		else:
-			self.cell5, self.cell6 = False, False
 		# Create fixation cross
 		self.fixation = visual.ShapeStim(self.win,  							
 								vertices=((0, -1*fix_size), (0, fix_size), (0,0), 
@@ -113,105 +113,27 @@ class ENVIRONMENT():
 								lineColor='white',
 								autoDraw=True
 								)
-
-		# position circles over board. units are taken from the create_circle function
-
-		self.cell1.pos = [0, 14]
-		self.cell2.pos = [14, 8]
-		self.cell3.pos = [0, -14]
-		self.cell4.pos = [-14, 8]
-		if self.stimuli_number == 6:
-			self.cell5.pos = [-14, -8]
-			self.cell6.pos = [14, -8]
-
-		self.cells = [self.cell1,self.cell2,self.cell3,self.cell4, self.cell5, self.cell6][0:self.stimuli_number]
-		self.p300_markers_on =  [[11], [22],[33],[44], [55], [66]]
-
 		if self.photocell == True:
-			self.cell_fd = create_circle(6)
+			self.cell_fd = visual.Circle(self.win, size = 4, units = 'deg', autoDraw=True)
 			self.cell_fd.pos = [0,0]
 
+		# position circles over board. units are taken from the create_circle function
+		poslist = self.config['positions']
+		for a in self.active_stims:
+			a.pos = poslist[int(a.name)]
+		for a in self.non_active_stims:
+			a.pos = poslist[int(a.name)]
+
+		self.stimlist = [self.non_active_stims, self.active_stims]
+
+		self.p300_markers_on =  [[11], [22],[33],[44], [55], [66]]
 
 
 
-	def flipper(self, N):
-		'''function gets circe object, bit of the stimuli sequence (SSVEP or C-VEP), 
-		and number of this bit, and decides what to do with circle on the next step'''
-		# if n == 2:
-		# 	CELL.fillColor = 'red'
-		# 	return
-		# if n == 3:
-			# CELL.fillColor = 'red'
-			# return
-		if self.pattern[N][1][self.pattern[N][2]] ==1:
-			self.pattern[N][0].fillColor = self.stimcolor[self.pattern[N][0].name]
-			self.pattern[N][2] +=1
-			if self.pattern[N][2] == len(self.pattern[N][1]):
-				self.pattern[N][2] = 0
-			else:
-				pass
-			return
 
-		elif self.pattern[N][1][self.pattern[N][2]] ==0:
-			self.pattern[N][0].fillColor = 'black'
-			self.pattern[N][2] +=1
-			if self.pattern[N][2] == len(self.pattern[N][1]):
-				self.pattern[N][2] = 0
-			else:
-				pass
-			return
-	
-	def exit_(self):
-		''' exit and kill dependent processes'''
-		self.LSL.push_sample([999])
-		core.wait(1)
-		sys.exit()
-
-	def run_SSVEP_exp(self):
-		'''Core function of the experiment. Defines GUI behavior and marker sending'''
-		# create sequences for every cell; should be the same length!
-		# seq1, seq2, seq3, seq4 = base_mseq, numpy.roll(base_mseq, 8), numpy.roll(base_mseq, 16), numpy.roll(base_mseq, 24) # CVEP
-
-		steady_state_seqs = create_steady_state_sequences([6, 10, 12, 15], refresh_rate = self.refresh_rate)
-		seq1, seq2, seq3, seq4 = steady_state_seqs[0], steady_state_seqs[1], steady_state_seqs[2], steady_state_seqs[3]
-		self.pattern = [[self.cell1, seq1, 0], [self.cell2, seq2, 0], [self.cell3, seq3,0],[self.cell4, seq4,0 ]]
-
-		tt = time.time()
-		deltalist = ['','','','','','','','','','']
-		
-		while 's' not in event.getKeys():
-			pass
-		for a in range(self.number_of_inputs):
-			timer = core.Clock()
-			self.LSL.push_sample([222])  # indicate trial start
-			flipcount = 0
-			while timer.getTime() < self.time_4_one_letter: 
-				if 'escape' in event.getKeys():
-					self.exit_()
-				for pair_num in range(len(self.pattern)):
-					self.flipper(pair_num)
-				self.win.flip()
-				flipcount +=1
-				
-				if flipcount == self.refresh_rate:
-					deltaT = int((1 + (tt - time.time()))*1000)
-					deltaT = "{0:.1f}".format(round(deltaT,2))
-					deltalist[1:] = deltalist[0:-1]
-					deltalist[0] = deltaT
-					print 'delta T:	%s ms \r' % str(deltalist),
-					flipcount = 0
-					tt = time.time()
-			self.LSL.push_sample([333])  # indicate trial end
-
-			print 'next letter\n'
-			core.wait(2)
-
-		self.exit_()
-
-
-	def run_P300_exp(self, stim_duration_FRAMES = 3, ISI_FRAMES = 9, repetitions =  10, waitforS=True):
+	def run_P300_exp(self, stim_duration_FRAMES = 3, ISI_FRAMES = 9, repetitions =  10, waitforS=True, stimuli_number = 6):
 		'P300 expreiment. Stimuli duration and interstimuli interval should be supplied as number of frames.'
-		cycle_ms = (stim_duration_FRAMES +ISI_FRAMES)*1000.0/self.refresh_rate
+		cycle_ms = (stim_duration_FRAMES + ISI_FRAMES)*1000.0/self.refresh_rate
 		print 'P300 cycle is %.2f ms' % cycle_ms
 		seq = [1]*stim_duration_FRAMES + [0]*ISI_FRAMES
 
@@ -228,14 +150,15 @@ class ENVIRONMENT():
 				pass
 		for letter, aim in enumerate(aims):
 			self.LSL.push_sample([777]) # input of new letter
-			superseq = generate_p300_superseq(numbers = range(self.stimuli_number), repetitions = repetitions)
+			superseq = generate_p300_superseq(numbers = self.stimuli_indices, repetitions = repetitions)
 
 			# aim_stimuli
-			print [self.cells[aim].name] 
-			self.cells[aim].fillColor = self.stimcolor_p300[1][self.cells[aim].name] # indicate aim stimuli
+			print [self.active_stims[aim].image] 
+			self.active_stims[aim].draw() # indicate aim stimuli
+
 			self.win.flip()
 			core.wait(2)
-			self.cells[aim].fillColor = self.stimcolor_p300[0][self.cells[aim].name] # fade to grey
+			self.non_active_stims[aim].draw() # fade to grey
 			self.win.flip()
 			core.wait(1)
 
@@ -247,22 +170,13 @@ class ENVIRONMENT():
 			
 			tt = time.time()
 			for a in superseq:
-				self.cells[a].fillColor = self.stimcolor_p300[1][self.cells[a].name]
+				self.stimlist[1][a].draw() # first occurence of stimulus in the train
 				self.win.flip()
-				self.LSL.push_sample(self.p300_markers_on[a]) # push marker immdiately after first bit of the sequence
-				
-				## tried to sync _data and .easy files.
-				# dtm =  datetime.datetime.now()
-				# dtmint = int(time.mktime(dtm.timetuple())*1000 + dtm.microsecond/1000)
-				# dtmint = dtmint - (dtmint/1000000)*1000000 +  self.p300_markers_on[a][0]*1000000
-				# print int(time.mktime(dtm.timetuple())*1000 + dtm.microsecond/1000)
-				# self.LSL.push_sample([dtmint]) # push marker immdiately after first bit of the sequence; first digit is the number, other  - tail of Unix Time
-
+				self.LSL.push_sample([self.stimlist[1][a].name], pushthrough = True) # push marker immdiately after first bit of the sequence
 				for b in seq[1:]:
-					self.cells[a].fillColor = self.stimcolor_p300[b][self.cells[a].name]
+					self.stimlist[b][a].draw()
 					if self.photocell == True:
 						self.cell_fd.fillColor = ['black', 'white'][b]
-					
 					self.win.flip()
 				
 				#acess timing accuracy
@@ -317,7 +231,7 @@ def generate_p300_superseq(numbers =[0,1,2,3], repetitions = 10):
 		dd_l.insert(p[1],a)
 	return dd_l
 
-def create_steady_state_sequences(freqs, refresh_rate = 120, limit_pulse_width = None, phase_rotate = None):
+def generate_steady_state_sequences(freqs, refresh_rate = 120, limit_pulse_width = None, phase_rotate = None):
 	'''Function receives list of frequencies and screen refresh_rate, returns list of sequences, corresponding to this frequencies. 
 	   Frequences should be disisors of refresh_rate/2
 	   TODO:
@@ -357,7 +271,7 @@ if __name__ == '__main__':
 
 	ENV = ENVIRONMENT(DEMO = True)
 	# ENV.Fullscreen = True
-	ENV.photocell = True
+	# ENV.photocell = True
 	ENV.refresh_rate = 60
-	ENV.build_gui(monitor = mymon, rgb = ENV.rgb)
+	ENV.build_gui(monitor = mymon)
 	ENV.run_P300_exp(waitforS = False)

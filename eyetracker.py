@@ -75,8 +75,7 @@ class Eyetracker():
         print "iV_Validate " + str(self.res)
         self.res = iViewXAPI.iV_ShowAccuracyMonitor ( )
         self.res = iViewXAPI.iV_ShowEyeImageMonitor ( )
-        while 1:
-            pass
+        raw_input('press any key to continue')
 
     def connect_to_iView(self):
         self.res = iViewXAPI.iV_Connect(c_char_p(self.host_ip), c_int(4444), c_char_p(self.server_ip), c_int(5555))
@@ -94,11 +93,14 @@ class Eyetracker():
         if not self.im:
             print 'LSL socket is Nonetype, exiting'
             self.exit_()
-
-        for a in range(10):
+        print 'server running...'
+        while 1:
             marker, timestamp_mark = self.im.pull_sample()
             IDF_marker =  str([marker, timestamp_mark])
             self.send_marker_to_iViewX(IDF_marker)
+            print marker
+            if marker == [[999]]:
+                self.exit_()
 
     def main(self):
         self.connect_to_iView()
@@ -108,7 +110,8 @@ class Eyetracker():
 
 
     def exit_(self):
-        time.sleep(3)
+        self.im.close_stream()
+        time.sleep(1)
         self.res = iViewXAPI.iV_StopRecording()
 
         user = '1'
