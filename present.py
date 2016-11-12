@@ -9,13 +9,6 @@ from psychopy.tools.monitorunittools import posToPix
 mymon = monitors.Monitor('Eizo', distance=48, width = 52.5)
 # mymon = monitors.Monitor('zenbook', distance=18, width = 29.5)
 mymon.setSizePix([1920, 1080])		
-	# base_mseq = [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0] # steady-state 60 fps
-# base_mseq = [0,0,0,0,0,0,1,1,1,1,1,0,1,1,1,1,0,0,1,1,1,0,1,0,1,1,0,0,0,0,1,0,1,1,1,0,0,0,1,1,0,1,1,0,1,0,0,1,0,0,0,1,0,0,1,1,0,0,1,0] # cvep 60 fps
-base_mseq = [0,0,0,0,0,0,1,1,1,1,1,0,1,1,1,1,0,0,1,1,1,0,1,0,1,1,0,0,2,2,1,0,1,1,1,0,0,0,1,1,0,1,1,0,1,0,0,1,0,0,0,1,0,0,1,1,0,0,1,0] # cvep 60 fps with red bits
-# base_mseq = [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0] # steady-state
-# base_mseq = [0,0,0,0,0,0,1,1,1,1,1,0,1,1,1,1,0,0,1,1,1,0,1,0,1,1,0,0,0,0,1,0,1,1,1,0,0,0,1,1,0,1,1,0,1,0,0,1,0,0,0,1,0,0,1,1,0,0,1,0,1,0,1,0] # cvep
-# base_mseq = [a for a in base_mseq for b in [0,0]] # extend sequence
-base_mseq = np.array(base_mseq, dtype = int)
 
 class ENVIRONMENT():
 	""" class for visual stimulation during the experiment """
@@ -153,7 +146,6 @@ class ENVIRONMENT():
 			superseq = generate_p300_superseq(numbers = self.stimuli_indices, repetitions = repetitions)
 
 			# aim_stimuli
-			print [self.active_stims[aim].image] 
 			self.active_stims[aim].draw() # indicate aim stimuli
 
 			self.win.flip()
@@ -219,6 +211,12 @@ class ENVIRONMENT():
 							  waitforS= waitforS)
 		else:
 			self.exit_()
+
+	def exit_(self):
+		''' exit and kill dependent processes'''
+		self.LSL.push_sample([999])
+		core.wait(1)
+		sys.exit()
 
 def generate_p300_superseq(numbers =[0,1,2,3], repetitions = 10):
 	''' receives IDs of stimuli, and number of repetitions, returns stimuli sequence without repeats'''

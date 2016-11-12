@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*- 
 
 import numpy as np
-import os, sys, time, warnings
+import os, sys, time, warnings, ast
 from matplotlib import pyplot  as plt 
 from pylsl import StreamInlet, StreamOutlet, StreamInfo, resolve_stream
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
@@ -15,15 +15,16 @@ class Classifier():
 	"""docstring for Classifier"""
 	def __init__(self, mapnames, online = False,
 				top_exp_length = 60, number_of_channels = 8, classifier_channels = [],
-				sampling_rate = 500, downsample_div = 10, saved_classifier = False):
+				sampling_rate = 500, downsample_div = 10, saved_classifier = False, config = './config_circles.bcicfg'):
 		
 		self.LEARN_BY_DELTAS = False
 		self.sampling_rate = sampling_rate
 		self.downsample_div = downsample_div
-		self.SPEAK =True
-
 		self.number_of_EEG_channels = number_of_channels
 		self.channel_names = range(self.number_of_EEG_channels)
+		
+		self.SPEAK =True
+		self.stimuli_names = ast.literal_eval(open(config).read())['names']
 		
 		if classifier_channels == []:
 			self.classifier_channels = range(number_of_channels)
@@ -264,7 +265,7 @@ class Classifier():
 
 	def say_aloud(self, ans = False, index = False, word = False):
 		if not word:
-			word = ['red', 'green', 'blue', 'pink', 'yellow', 'purple'][index] # name of max-scored stimuli
+			word = self.stimuli_names[index] # name of max-scored stimuli
 			if ans[index] == 0:
 				word = 'No command selected'
 		else:

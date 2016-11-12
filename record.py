@@ -156,6 +156,15 @@ class EEG_STREAM(object):
 		eeg_array[line_counter:line_counter+length, 0] = timestamp_chunk
 		eeg_array[line_counter:line_counter+length,1:] = data_chunk
 	
+	def save_data(self, sessiontype = '', startingpoint = False):
+		print '\nsaving experiment data from %s session...\n' %sessiontype
+		eegdata = self.EEG_ARRAY[np.isnan(self.EEG_ARRAY[:,1]) != True,:]  # delete all unused lines from data matrix
+		markerdata = self.MARKER_ARRAY[np.isnan(self.MARKER_ARRAY[:,1]) != True,:]
+		np.savetxt('_data%s.txt'%sessiontype, eegdata, fmt= '%.4f')
+		np.savetxt('_markers%s.txt'%sessiontype, markerdata, fmt= '%.4f')
+		print '\n...data saved.\n Goodbye.\n'
+
+
 	def plot_and_record(self):
 		''' Main cycle for recording and plotting FFT. Pulls markers and eeg from lsl inlets, 
 		fills preallocated arrays with data. After certain offset calculates FFT and updates plots. Records data on exit.'''
@@ -179,6 +188,12 @@ class EEG_STREAM(object):
 				self.fill_array(self.MARKER_ARRAY, self.line_counter_mark, marker[0], timestamp_mark, datatype = 'MARKER')				
 				if marker == [[999]]:
 					self.stop = timestamp_mark[0] # set last 
+				# if marker == [[888999]]:
+					# save_data(sessiontype = '_learn')  #save data as usual
+					# self.learning_end = timestamp_mark[0]
+					# then save if > learning_end -> sessiontype = '_play'					
+				# 	pass
+
 
 			if timestamp_eeg:
 				self.fill_array(self.EEG_ARRAY, self.line_counter, EEG, timestamp_eeg, datatype = 'EEG')
@@ -190,12 +205,7 @@ class EEG_STREAM(object):
 				if self.stop != False : # save last EEG chunk before exit
 					if timestamp_eeg[-1] >= self.stop:
 						plt.close() # oherwise get Fatal Python error: PyEval_RestoreThread: NULL tstate
-						print '\nsaving experiment data...\n'
-						eegdata = self.EEG_ARRAY[np.isnan(self.EEG_ARRAY[:,1]) != True,:]  # delete all unused lines from data matrix
-						markerdata = self.MARKER_ARRAY[np.isnan(self.MARKER_ARRAY[:,1]) != True,:]
-						np.savetxt('_data.txt', eegdata, fmt= '%.4f')
-						np.savetxt('_markers.txt', markerdata, fmt= '%.4f')
-						print '\n...data saved.\n Goodbye.\n'
+						self.save_data()
 						sys.exit()
 
 

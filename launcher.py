@@ -7,18 +7,21 @@ import present
 import record
 import classify
 
+
+config = './config_circles.bcicfg'
+
 mapnames = {'eeg':'eegdata.mmap', 'markers':'markers.mmap'}
 top_exp_length = 60
 number_of_channels = 8
 classifier_channels = []
 savedclass = False
-# savedclass = 'classifier_1478677771640.cls'
+savedclass = 'classifier_1478677771640.cls'
 
 def view():
 	'''Create stimulation window'''
-	ENV = present.ENVIRONMENT(config = './config_letters.bcicfg')
+	ENV = present.ENVIRONMENT(config = config)
 	ENV.Fullscreen = False 	
-	# ENV.photocell = True
+	ENV.photocell = True
 
 	ENV.refresh_rate = 60	 
 	ENV.build_gui(stimuli_number = 12,
@@ -29,7 +32,7 @@ def view():
 	else:
 		print 'Buildindg new classifier'
 	ENV.run_P300_exp(stim_duration_FRAMES = 10, ISI_FRAMES = 5, 
-					waitforS = False, repetitions=10)
+					waitforS = False, repetitions=6)
 	sys.stdout = open(str(os.getpid()) + ".out", "w") #MAGIC
 
 def rec():
@@ -45,7 +48,8 @@ def class_():
 									top_exp_length = top_exp_length, 
 									number_of_channels = number_of_channels,
 									classifier_channels = classifier_channels, 
-									saved_classifier = savedclass)
+									saved_classifier = savedclass,
+									config = config)
 	CLSF.mainloop()
 	sys.stdout = open(str(os.getpid()) + ".out", "w")
 

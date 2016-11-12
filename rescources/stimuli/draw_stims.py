@@ -28,6 +28,7 @@ Dark Olive Green'''
 
 stimlist = [str(a) for a in range(32)]
 stimlist = [a for a in 'abcdefghijklmonpqrstuvwxyz']
+print [a for a in 'abcdefghijklmonpqrstuvwxyz']
 # stim_colors = ['red']*len(stimlist)
 stim_colors = ['white']*len(stimlist)
 
