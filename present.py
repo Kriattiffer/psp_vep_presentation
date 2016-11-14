@@ -63,7 +63,7 @@ class ENVIRONMENT():
 
 
 	def build_gui(self, stimuli_number = 6, 
-					monitor = mymon, fix_size = 1):
+					monitor = mymon, fix_size = 1, screen  = 1):
 		''' function for creating visual enviroment. Input: various parameters of stimuli, all optional'''
 		
 		self.stimuli_indices = range(stimuli_number)
@@ -75,7 +75,7 @@ class ENVIRONMENT():
 							rgb = self.background,
 							size = self.window_size,	
 							monitor = monitor,
-							screen = 1 # 1 - primary, else - secondary
+							screen = screen # 1 - primary, else - secondary
 							)
 
 		# read image from rescources dir and crate ImageStim objects
@@ -162,15 +162,13 @@ class ENVIRONMENT():
 			
 			tt = time.time()
 			for a in superseq:
-				self.stimlist[1][a].draw() # first occurence of stimulus in the train
-				self.win.flip()
 				self.LSL.push_sample([self.stimlist[1][a].name], pushthrough = True) # push marker immdiately after first bit of the sequence
-				for b in seq[1:]:
+				for b in seq:
 					self.stimlist[b][a].draw()
 					if self.photocell == True:
 						self.cell_fd.fillColor = ['black', 'white'][b]
 					self.win.flip()
-				
+
 				#acess timing accuracy
 				deltaT = time.time() - tt
 				deltaT = "{0:2.0f}".format(round((deltaT*1000)- cycle_ms,2))

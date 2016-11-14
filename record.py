@@ -176,7 +176,11 @@ class EEG_STREAM(object):
 			eegdata = self.EEG_ARRAY[np.isnan(self.EEG_ARRAY[:,1]) != True,:]  # delete all unused lines from data matrix
 			markerdata = self.MARKER_ARRAY[np.isnan(self.MARKER_ARRAY[:,1]) != True,:]
 		
-		pass 																# join EEG and data steams
+		pass # join EEG and data steams
+		# add column with markers
+		# add colum with 1-0
+
+
 		np.savetxt('_data%s.txt'%sessiontype, eegdata, fmt= '%.4f')
 		np.savetxt('_markers%s.txt'%sessiontype, markerdata, fmt= '%.4f')
 

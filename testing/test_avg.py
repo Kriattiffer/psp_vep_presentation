@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 from scipy import signal
 import os
 
-def slice_eeg(offsets,eeg, channel, sample_length = 200):
+def slice_eeg(offsets,eeg, channel, sample_length = 500):
 	slices = [] 
 	for offset in offsets:
 		# print offset
@@ -76,7 +76,7 @@ def from_LSL(channel, mend = 999, mstart = 777):
 	print np.shape(eeg)
 
 	print np.shape(markers)
-	# eeg[:,1:] = butter_filt(eeg[:,1:], (1,40))
+	# eeg[:,1:] = butter_filt(eeg[:,1:], (0.1,49))
 	max_inds  = get_maximums_from_eeg(eeg)
 
 
@@ -157,11 +157,10 @@ def from_plain_eeg(channel):
 
 if __name__ == '__main__':
 	
-	datafile = "./_data/2510_squares/_data_800_2channels.txt"
-	markersfile = "./_data/2510_squares/_markers_800_2channels.txt"
+	datafile = "./_data_play.txt"
+	markersfile = "./_markers_play.txt"
 
-	# slices = from_LSL(1)
-	slices = from_plain_eeg(1)
+	slices = from_LSL(1)
 
 
 	print np.shape(slices)
