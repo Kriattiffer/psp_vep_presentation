@@ -301,7 +301,9 @@ class Classifier():
 		self.sock.send('answer is %i' %index) # start presentation for next aim stimuli
 		return index
 		# probs for every run  - if wouldnt work otherwise
-
+	
+	def test_offline(self):
+		pass
 		
 
 if __name__ == '__main__':

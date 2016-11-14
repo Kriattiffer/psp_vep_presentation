@@ -15,7 +15,7 @@ top_exp_length = 60
 number_of_channels = 8
 classifier_channels = []
 savedclass = False
-savedclass = 'classifier_1478677771640.cls'
+# savedclass = 'classifier_1478677771640.cls'
 
 def view():
 	'''Create stimulation window'''
@@ -24,7 +24,7 @@ def view():
 	ENV.photocell = True
 
 	ENV.refresh_rate = 60	 
-	ENV.build_gui(stimuli_number = 12,
+	ENV.build_gui(stimuli_number = 4,
 					monitor = present.mymon)
 	if savedclass:
 		ENV.LEARN = False

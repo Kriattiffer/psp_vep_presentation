@@ -4,7 +4,7 @@ from pylsl import StreamInlet, resolve_stream
 from matplotlib import pyplot as plt
 from scipy import signal
 import numpy as np
-import sys, os
+import sys, os, warnings
 
 class FFT_PLOT():
 	"""class for real-time plotting of FFT fot every channel"""
@@ -76,6 +76,9 @@ class EEG_STREAM(object):
 		self.StreamEeg, self.StreamMarkers = StreamEeg, StreamMarkers
 		self.plot_fft = plot_fft
 		self.stop = False  # set EEG_STREAM.stop to 1 to flush arrays to disc. This variable is also used to choose the exact time to stop record.
+		self.learning_end = False
+		self.save_separate_learn_and_play = True
+
 		self.ie, self.im =  self.create_streams()
 		
 		self.EEG_ARRAY = self.create_array(mmapname=mapnames['eeg'], top_exp_length = top_exp_length, number_of_channels = number_of_channels+1)
@@ -157,12 +160,25 @@ class EEG_STREAM(object):
 		eeg_array[line_counter:line_counter+length,1:] = data_chunk
 	
 	def save_data(self, sessiontype = '', startingpoint = False):
+
 		print '\nsaving experiment data from %s session...\n' %sessiontype
-		eegdata = self.EEG_ARRAY[np.isnan(self.EEG_ARRAY[:,1]) != True,:]  # delete all unused lines from data matrix
-		markerdata = self.MARKER_ARRAY[np.isnan(self.MARKER_ARRAY[:,1]) != True,:]
+
+		if startingpoint:
+			print np.logical_and((self.MARKER_ARRAY[:,0]>startingpoint), 
+																(np.isnan(self.MARKER_ARRAY[:,1]) != True))
+			with warnings.catch_warnings(): # >< operators generate warnings on arrays with NaNs, like our EEG array
+				warnings.simplefilter("ignore")
+				eegdata = self.EEG_ARRAY[np.logical_and((self.EEG_ARRAY[:,0]>startingpoint), 
+																		(np.isnan(self.EEG_ARRAY[:,1]) != True)),:]  # delete all unused lines from data matrix AND use data only after learning has ended
+				markerdata = self.MARKER_ARRAY[np.logical_and((self.MARKER_ARRAY[:,0]>startingpoint), 
+																(np.isnan(self.MARKER_ARRAY[:,1]) != True)),:]
+		else: #LMAO
+			eegdata = self.EEG_ARRAY[np.isnan(self.EEG_ARRAY[:,1]) != True,:]  # delete all unused lines from data matrix
+			markerdata = self.MARKER_ARRAY[np.isnan(self.MARKER_ARRAY[:,1]) != True,:]
+		
+		pass 																# join EEG and data steams
 		np.savetxt('_data%s.txt'%sessiontype, eegdata, fmt= '%.4f')
 		np.savetxt('_markers%s.txt'%sessiontype, markerdata, fmt= '%.4f')
-		print '\n...data saved.\n Goodbye.\n'
 
 
 	def plot_and_record(self):
@@ -171,27 +187,30 @@ class EEG_STREAM(object):
 	
 		while 1: #self.stop != True:	
 			# pull chunks if Steam_eeg and stream_markess are True
-			# if self.StreamEeg == True:
 			try:
 				EEG, timestamp_eeg = self.ie.pull_chunk()
 			except:
 				EEG, timestamp_eeg = [], []
 
-			# if self.StreamMarkers ==True:
 			try:
 				marker, timestamp_mark = self.im.pull_chunk()
 			except :
 				marker, timestamp_mark = [],[]
 			
-			if timestamp_mark:
+			if timestamp_mark:	
 				self.line_counter_mark += len(timestamp_mark)
 				self.fill_array(self.MARKER_ARRAY, self.line_counter_mark, marker[0], timestamp_mark, datatype = 'MARKER')				
 				if marker == [[999]]:
 					self.stop = timestamp_mark[0] # set last 
-				# if marker == [[888999]]:
-					# save_data(sessiontype = '_learn')  #save data as usual
-					# self.learning_end = timestamp_mark[0]
-					# then save if > learning_end -> sessiontype = '_play'					
+				if marker == [[888999]]:
+					if self.save_separate_learn_and_play == True:
+						self.save_data(sessiontype = '_learn')  #save data as usual
+						print '\n...Learning data saved.\n'
+
+						self.learning_end = timestamp_mark[0]
+						print self.learning_end
+						print self.learning_end
+						print self.EEG_ARRAY[:,0]>self.learning_end
 				# 	pass
 
 
@@ -205,8 +224,10 @@ class EEG_STREAM(object):
 				if self.stop != False : # save last EEG chunk before exit
 					if timestamp_eeg[-1] >= self.stop:
 						plt.close() # oherwise get Fatal Python error: PyEval_RestoreThread: NULL tstate
-						self.save_data()
+						self.save_data(sessiontype = '_play', startingpoint = self.learning_end)
+						print '\n...data saved.\n Goodbye.\n'
 						sys.exit()
+
 
 
 def butter_filt(data, cutoff_array, fs = 500, order=4):

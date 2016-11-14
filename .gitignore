@@ -90,6 +90,7 @@ ENV/
 # Data files
 _data.txt
 _markers.txt
+_*
 *.mmap
 *.easy
 *.info
