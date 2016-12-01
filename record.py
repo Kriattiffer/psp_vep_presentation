@@ -153,11 +153,11 @@ class EEG_STREAM(object):
 		print '... done'
 		return a
 
-	def fill_array(self, eeg_array, line_counter, data_chunk, timestamp_chunk, datatype = 'EEG'):
+	def fill_array(self, data_array, line_counter, data_chunk, timestamp_chunk):
 		'''Recieves preallocated array of NaNs, piece of data, piece of offsets and number of line, inserts everything into array. Works both with EEG and with markers '''
 		length = len(timestamp_chunk)
-		eeg_array[line_counter:line_counter+length, 0] = timestamp_chunk
-		eeg_array[line_counter:line_counter+length,1:] = data_chunk
+		data_array[line_counter:line_counter+length, 0] = timestamp_chunk
+		data_array[line_counter:line_counter+length,1:] = data_chunk
 	
 	def save_data(self, sessiontype = '', startingpoint = False):
 
@@ -201,9 +201,9 @@ class EEG_STREAM(object):
 			except :
 				marker, timestamp_mark = [],[]
 			
-			if timestamp_mark:	
+			if timestamp_mark:					
 				self.line_counter_mark += len(timestamp_mark)
-				self.fill_array(self.MARKER_ARRAY, self.line_counter_mark, marker[0], timestamp_mark, datatype = 'MARKER')				
+				self.fill_array(self.MARKER_ARRAY, self.line_counter_mark, marker, timestamp_mark)				
 				if marker == [[999]]:
 					self.stop = timestamp_mark[0] # set last 
 				if marker == [[888999]]:
@@ -219,7 +219,7 @@ class EEG_STREAM(object):
 
 
 			if timestamp_eeg:
-				self.fill_array(self.EEG_ARRAY, self.line_counter, EEG, timestamp_eeg, datatype = 'EEG')
+				self.fill_array(self.EEG_ARRAY, self.line_counter, EEG, timestamp_eeg)
 				self.line_counter += len(timestamp_eeg)
 				if self.plot_fft == True and self.line_counter>self.sample_length and self.line_counter % 10 == 0:
 					FFT = compute_fft(self.EEG_ARRAY, self.line_counter, sample_length = self.sample_length)

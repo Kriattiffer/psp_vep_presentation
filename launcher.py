@@ -8,24 +8,24 @@ import record
 import classify
 
 
-config = './config_circles.bcicfg'
+config = './letters_table.bcicfg'
+screen = 0
 
 mapnames = {'eeg':'eegdata.mmap', 'markers':'markers.mmap'}
 top_exp_length = 60
 number_of_channels = 8
 classifier_channels = []
 savedclass = False
-savedclass = 'classifier_1479141811392.cls'
+savedclass = 'sample8chann.cls'
+# savedclass = 'sample20chann.cls' # 20 CHANN
 
 def view():
 	'''Create stimulation window'''
 	ENV = present.ENVIRONMENT(config = config)
-	ENV.Fullscreen = False 	
-	ENV.photocell = True
+	ENV.Fullscreen = True 	
 
-	ENV.refresh_rate = 120	 
-	ENV.build_gui(stimuli_number = 4,
-					monitor = present.mymon, screen = 0)
+	ENV.build_gui(stimuli_number = 3,
+					monitor = present.mymon, screen = screen)
 	if savedclass:
 		ENV.LEARN = False
 		print 'Using saved classifier from %s' % savedclass

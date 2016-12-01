@@ -6,10 +6,10 @@ from matplotlib import pyplot as plt
 from scipy import signal
 import os
 
-def slice_eeg(offsets,eeg, channel, sample_length = 500):
+def slice_eeg(offsets,eeg, channel, sample_length = 70):
 	slices = [] 
-	for offset in offsets:
-		# print offset
+	for offset in offsets: 
+		# print offsets
 		ind = np.argmax(eeg[:,0] > offset) #+8
 		slice = eeg[ind:ind+sample_length, channel]
 		# slice = slice - np.average(slice, axis = 0) #?
@@ -29,34 +29,38 @@ def get_maximums_from_eeg(eeg, window_length = 140):
 	for a in  range(0, np.shape(eeg)[0]-window_length):
 		slice = eeg[a:a+window_length,:]
 		am = np.argmax(slice[:,1])
-		mx = slice[:,0][am]
-		if mx not in maxlist:
-			try:
-				delta = (mx-maxlist[-1])*1000 
-				if abs(delta)<window_length:
-					pass	
-					# print mx
-					# print maxlist[-1]
-					# print a
-					# print (mx-maxlist[-1])*1000
-					# plt.plot(slice[:,1])
-					# plt.plot(eeg[a-delta:a+window_length-delta,1])
-					# plt.plot(amold, 'o')
+		if slice[:,1][am] < 14900:
+			pass
+		else:
+			mx = slice[:,0][am]
+			if mx not in maxlist:
+				try:
+					delta = (mx-maxlist[-1])*1000 
+					if abs(delta)<window_length:
+						pass	
+						# print mx
+						# print maxlist[-1]
+						# print a
+						# print (mx-maxlist[-1])*1000
+						# plt.plot(slice[:,1])
+						# plt.plot(eeg[a-delta:a+window_length-delta,1])
+						# plt.plot(amold, 'o')
 
-					# plt.show()
-				else:
+						# plt.show()
+					else:
+						pass
+						maxlist.append(mx)
+
+				except:
 					pass
+				
+				if len(maxlist) == 0:
+				# if 1:
 					maxlist.append(mx)
-
-			except:
-				pass
-			
-			if len(maxlist) == 0:
-			# if 1:
-				maxlist.append(mx)
 
 	maxinds =  np.array(maxlist)
 	minddelta = (maxinds[1:] - maxinds[:-1])*1000
+
 	# plt.hist(minddelta, bins = 200)
 	# plt.show()
 	print 'delta t maximums'

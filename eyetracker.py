@@ -50,7 +50,7 @@ class Eyetracker():
         '''configure and start calibration'''
 
         numberofPoints = 9 # can be 2, 5 and 9
-        displayDevice = 0 # 0 - primary, 1- secondary
+        displayDevice = 1 # 0 - primary, 1- secondary
         pointBrightness = 250
         backgroundBrightnress = 50
         targetFile = b""

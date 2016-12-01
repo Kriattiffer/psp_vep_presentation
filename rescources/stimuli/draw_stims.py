@@ -1,5 +1,5 @@
 from PIL import Image, ImageTk, ImageDraw, ImageFont
-background = '#868686'
+background = '#593315'
 kelly_colors_hex = ['#FFB300', '#803E75', '#FF6800', '#A6BDD7', '#C10020', '#CEA262',
 					'#817066', '#007D34', '#F6768E', '#00538A', '#FF7A5C', '#53377A', 
 					'#FF8E00', '#B32851', '#F4C800', '#7F180D', '#93AA00', '#593315', 
@@ -28,18 +28,17 @@ Dark Olive Green'''
 
 stimlist = [str(a) for a in range(32)]
 stimlist = [a for a in 'abcdefghijklmonpqrstuvwxyz']
-print [a for a in 'abcdefghijklmonpqrstuvwxyz']
 # stim_colors = ['red']*len(stimlist)
-stim_colors = ['white']*len(stimlist)
+stim_colors = ['#505050']*len(stimlist)
 
 
-stimlist = [str(a) for a in kelly_colors_hex]
-stim_colors = kelly_colors_hex
+# stimlist = [str(a) for a in kelly_colors_hex]
+# stim_colors = kelly_colors_hex
 
 
 imgsize = (200,200)
-textpos = 0, -50
-fnt = ImageFont.truetype("arial.ttf", 350)
+textpos = 50, -30
+fnt = ImageFont.truetype("arial.ttf", 200)
 
 ################################################################
 
@@ -49,11 +48,14 @@ def draw_text(stimlist):
 		b  = Image.new('RGBA', imgsize, background)
 		draw = ImageDraw.Draw(b)
 		draw.text(textpos, stim, stim_colors[n], font  =fnt)
-		stims_a.append(b)
-
-		b  = Image.new('RGBA', imgsize, background)
-		draw = ImageDraw.Draw(b)
 		stims_na.append(b)
+
+		b1  = Image.new('RGBA', imgsize, '#CEA262')
+		draw = ImageDraw.Draw(b1)
+		draw.text(textpos, stim, "black", font  =fnt)
+		draw = ImageDraw.Draw(b1)
+		stims_a.append(b1)
+
 	return {'active':stims_a, 'non_active':stims_na}
 
 
@@ -80,5 +82,6 @@ def draw_circles():
 
 
 
-pics = draw_circles()
+# pics = draw_circles()
+pics = draw_text(stimlist)
 save_stims(pics)

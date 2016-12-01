@@ -15,7 +15,7 @@ class Classifier():
 	"""docstring for Classifier"""
 	def __init__(self, mapnames, online = False,
 				top_exp_length = 60, number_of_channels = 8, classifier_channels = [],
-				sampling_rate = 500, downsample_div = 10, saved_classifier = False, config = './config_circles.bcicfg'):
+				sampling_rate = 500, downsample_div = 10, saved_classifier = False, config = './circles.bcicfg'):
 		
 		self.LEARN_BY_DELTAS = False
 		self.sampling_rate = sampling_rate
@@ -101,6 +101,7 @@ class Classifier():
 		letter_slices = [[] for a in codes]
 		for i,code in enumerate(codes):
 			offs = MARKERS[MARKERS[:,1]==code][:,0]
+			# print offs
 			letters[i] = offs
 			for off in offs:
 				eegs = EEG[np.logical_and(  (EEG[:,0]*1000>off*1000), 
@@ -181,13 +182,14 @@ class Classifier():
 				print "TARGET CONFIRMED"
 				with warnings.catch_warnings(): # >< operators generate warnings on arrays with NaNs, like our EEG array
 					warnings.simplefilter("ignore")
-					EEG = self.eegstream[np.logical_and(self.eegstream[:,0]>trialstart, self.eegstream[:,0]<trialend),:]
+					EEG = self.eegstream[np.logical_and(self.eegstream[:,0]>trialstart, 
+														self.eegstream[:,0]<trialend),:]
 					MARKERS = self.markerstream[np.logical_and( self.markerstream[:,0]>trialstart,
 					 											self.markerstream[:,0]<trialend),:]
 				lnames = np.unique(MARKERS[:,1])
 				lnames = lnames[lnames!=777]
 				lnames = lnames[lnames!=888]
-
+				
 				eeg_slices = self.prepare_letter_slices(lnames, EEG, MARKERS)
 				if self.mode == 'LEARN':
 					x,y = self.create_feature_vectors(eeg_slices)	
